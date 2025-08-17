@@ -58,7 +58,11 @@ export class SpecManager {
         const terminal = await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Creating Spec');
 
         // Set up automatic terminal renaming when spec folder is created
-        this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        if (terminal) {
+            this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        } else {
+            this.outputChannel.appendLine('[SpecManager] Could not get terminal to set up watcher. Terminal renaming will be skipped.');
+        }
     }
 
     async createWithAgents() {
@@ -94,7 +98,11 @@ export class SpecManager {
         const terminal = await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Creating Spec (Agents)');
 
         // Set up automatic terminal renaming when spec folder is created
-        this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        if (terminal) {
+            this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        } else {
+            this.outputChannel.appendLine('[SpecManager] Could not get terminal to set up watcher. Terminal renaming will be skipped.');
+        }
     }
 
     async implTask(taskFilePath: string, taskDescription: string) {

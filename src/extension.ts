@@ -16,6 +16,11 @@ import { UpdateChecker } from './utils/updateChecker';
 import { PermissionManager } from './features/permission/permissionManager';
 import { NotificationUtils } from './utils/notificationUtils';
 import { SpecTaskCodeLensProvider } from './providers/specTaskCodeLensProvider';
+import { CcrSettingsWebview } from './features/ccr/ccrSettingsWebview';
+
+import { FastifyInstance } from 'fastify';
+import { run as runRouterServer } from './router';
+import { VoiceManager } from './features/voice/voiceManager';
 
 let claudeCodeProvider: ClaudeCodeProvider;
 let specManager: SpecManager;
@@ -23,10 +28,17 @@ let steeringManager: SteeringManager;
 let permissionManager: PermissionManager;
 let agentManager: AgentManager;
 export let outputChannel: vscode.OutputChannel;
+let routerServer: FastifyInstance;
+export let voiceManager: VoiceManager;
+
 
 // 导出 getter 函数供其他模块使用
 export function getPermissionManager(): PermissionManager {
     return permissionManager;
+}
+
+export function getVoiceManager(): VoiceManager {
+    return voiceManager;
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -62,6 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize feature managers with output channel
     specManager = new SpecManager(claudeCodeProvider, outputChannel);
     steeringManager = new SteeringManager(claudeCodeProvider, outputChannel);
+    voiceManager = new VoiceManager(context, outputChannel);
 
     // Initialize Agent Manager and agents
     agentManager = new AgentManager(context, outputChannel);
@@ -124,6 +137,14 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(disposable);
     
     outputChannel.appendLine('CodeLens provider for spec tasks registered');
+
+    // Start the router server
+    try {
+        routerServer = await runRouterServer({ outputChannel });
+    } catch(e: any) {
+        outputChannel.appendLine(`Failed to start router server: ${e.message}`);
+        vscode.window.showErrorMessage(`Failed to start Claude Code Router server: ${e.message}`);
+    }
 }
 
 async function initializeDefaultSettings() {
@@ -471,6 +492,10 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
             outputChannel.appendLine(`[Permission Check] Checking bypassPermissionsModeAccepted field in ~/.claude.json`);
         }),
 
+        // CCR Settings command
+        vscode.commands.registerCommand('kfc.ccr.openSettings', () => {
+            CcrSettingsWebview.createOrShow(context.extensionUri);
+        })
     );
 }
 
@@ -537,5 +562,8 @@ export function deactivate() {
     // Cleanup
     if (permissionManager) {
         permissionManager.dispose();
+    }
+    if (routerServer) {
+        routerServer.close();
     }
 }
