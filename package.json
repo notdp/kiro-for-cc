@@ -1,6 +1,6 @@
 {
-  "name": "spec-ai-coder",
-  "displayName": "SPEC AI Coder",
+  "name": "kiro-for-cc",
+  "displayName": "Kiro for CC",
   "description": "An all-in-one AI extension for spec-driven development with a powerful, built-in LLM router.",
   "version": "1.0.0",
   "publisher": "heisebaiyun",
@@ -281,7 +281,6 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "axios": "^1.11.0",
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.8",
     "js-yaml": "^4.1.0"
@@ -296,6 +295,7 @@
     "@types/node": "^20.x",
     "@types/vscode": "^1.84.0",
     "@vscode/vsce": "^2.29.0",
+    "axios": "^1.11.0",
     "concurrently": "^9.2.0",
     "copy-webpack-plugin": "^13.0.0",
     "glob": "^10.4.2",
