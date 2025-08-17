@@ -1,8 +1,8 @@
 {
-  "name": "kiro-for-cc",
-  "displayName": "Kiro for Claude Code",
-  "description": "Spec-driven development with Claude Code - inspired by Kiro",
-  "version": "0.2.6",
+  "name": "spec-ai-coder",
+  "displayName": "SPEC AI Coder",
+  "description": "An all-in-one AI extension for spec-driven development with a powerful, built-in LLM router.",
+  "version": "1.0.0",
   "publisher": "heisebaiyun",
   "icon": "icon.png",
   "repository": {
@@ -69,7 +69,7 @@
     "viewsWelcome": [
       {
         "view": "kfc.views.overview",
-        "contents": "Configure Kiro for Claude Code\n\n[$(gear) Open Settings](command:kfc.settings.open)\n[$(question) Help](command:kfc.help.open)"
+        "contents": "Configure Kiro for Claude Code\n\n[$(gear) Open Kiro Settings](command:kfc.settings.open)\n[$(code) Open Router Settings](command:kfc.ccr.openSettings)\n[$(question) Help](command:kfc.help.open)"
       },
       {
         "view": "kfc.views.specExplorer",
@@ -213,6 +213,11 @@
         "command": "kfc.spec.implTask",
         "title": "Implement Task",
         "category": "Kiro for CC"
+      },
+      {
+        "command": "kfc.ccr.openSettings",
+        "title": "Open CCR Settings",
+        "category": "Kiro for CC"
       }
     ],
     "menus": {
@@ -306,6 +311,11 @@
           "default": "claude",
           "description": "Path to Claude Code CLI executable"
         },
+        "kfc.ccr.path": {
+          "type": "string",
+          "default": "ccr",
+          "description": "Path to the Claude Code Router (ccr) executable."
+        },
         "kfc.autoRefreshSpecs": {
           "type": "boolean",
           "default": true,
@@ -363,9 +373,23 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@fastify/static": "^8.2.0",
+    "@musistudio/llms": "^1.0.25",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.7",
+    "node-microphone": "^0.1.6",
+    "openai": "^4.52.7",
+    "fastify": "^4.28.1",
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.8",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "json5": "^2.2.3",
+    "openurl": "^1.1.1",
+    "pino-rotating-file-stream": "^0.0.2",
+    "tiktoken": "^1.0.21",
+    "uuid": "^9.0.1",
+    "mic": "^2.1.2",
+    "node-mic-record": "^0.0.4"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
