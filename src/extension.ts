@@ -16,6 +16,7 @@ import { UpdateChecker } from './utils/updateChecker';
 import { PermissionManager } from './features/permission/permissionManager';
 import { NotificationUtils } from './utils/notificationUtils';
 import { SpecTaskCodeLensProvider } from './providers/specTaskCodeLensProvider';
+import { CcrSettingsWebview } from './features/ccr/ccrSettingsWebview';
 
 let claudeCodeProvider: ClaudeCodeProvider;
 let specManager: SpecManager;
@@ -425,9 +426,14 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
             await vscode.window.showTextDocument(document);
         }),
 
+        vscode.commands.registerCommand('spec-ai-coder.ccr.openSettings', () => {
+            CcrSettingsWebview.createOrShow(context.extensionUri);
+        }),
+
         vscode.commands.registerCommand('spec-ai-coder.help.open', async () => {
             outputChannel.appendLine('Opening help...');
-            const helpUrl = 'https://github.com/notdp/kiro-for-cc#readme';
+            // TODO: The user should replace this with their forked repository URL
+            const helpUrl = 'https://github.com/abusallam/kiro-for-cc#readme';
             vscode.env.openExternal(vscode.Uri.parse(helpUrl));
         }),
 
