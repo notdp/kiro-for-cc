@@ -80,12 +80,10 @@ export async function activate(context: vscode.ExtensionContext) {
     steeringExplorer.setSteeringManager(steeringManager);
 
     context.subscriptions.push(
-        vscode.window.registerTreeDataProvider('kfc.views.overview', overviewProvider),
-        vscode.window.registerTreeDataProvider('kfc.views.specExplorer', specExplorer),
-        vscode.window.registerTreeDataProvider('kfc.views.agentsExplorer', agentsExplorer),
-        vscode.window.registerTreeDataProvider('kfc.views.steeringExplorer', steeringExplorer),
-        vscode.window.registerTreeDataProvider('kfc.views.hooksStatus', hooksExplorer),
-        vscode.window.registerTreeDataProvider('kfc.views.mcpServerStatus', mcpExplorer)
+        vscode.window.registerTreeDataProvider('spec-ai-coder.views.settings', overviewProvider),
+        vscode.window.registerTreeDataProvider('spec-ai-coder.views.specExplorer', specExplorer),
+        vscode.window.registerTreeDataProvider('spec-ai-coder.views.agentsExplorer', agentsExplorer),
+        vscode.window.registerTreeDataProvider('spec-ai-coder.views.steeringExplorer', steeringExplorer)
     );
 
     // Initialize update checker
@@ -220,9 +218,9 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
 
     // Permission commands
     context.subscriptions.push(
-        vscode.commands.registerCommand('kfc.permission.reset', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.permission.reset', async () => {
             const confirm = await vscode.window.showWarningMessage(
-                'Are you sure you want to reset Claude Code permissions? This will revoke the granted permissions.',
+                'Are you sure you want to reset permissions? This will revoke the granted permissions.',
                 'Yes', 'No'
             );
 
@@ -240,8 +238,8 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
     );
 
     // Spec commands
-    const createSpecCommand = vscode.commands.registerCommand('kfc.spec.create', async () => {
-        outputChannel.appendLine('\n=== COMMAND kfc.spec.create TRIGGERED ===');
+    const createSpecCommand = vscode.commands.registerCommand('spec-ai-coder.spec.create', async () => {
+        outputChannel.appendLine('\n=== COMMAND spec-ai-coder.spec.create TRIGGERED ===');
         outputChannel.appendLine(`Time: ${new Date().toLocaleTimeString()}`);
 
         try {
@@ -252,7 +250,7 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
         }
     });
 
-    const createSpecWithAgentsCommand = vscode.commands.registerCommand('kfc.spec.createWithAgents', async () => {
+    const createSpecWithAgentsCommand = vscode.commands.registerCommand('spec-ai-coder.spec.createWithAgents', async () => {
         try {
             await specManager.createWithAgents();
         } catch (error) {
@@ -264,19 +262,19 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
     context.subscriptions.push(createSpecCommand, createSpecWithAgentsCommand);
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('kfc.spec.navigate.requirements', async (specName: string) => {
+        vscode.commands.registerCommand('spec-ai-coder.spec.navigate.requirements', async (specName: string) => {
             await specManager.navigateToDocument(specName, 'requirements');
         }),
 
-        vscode.commands.registerCommand('kfc.spec.navigate.design', async (specName: string) => {
+        vscode.commands.registerCommand('spec-ai-coder.spec.navigate.design', async (specName: string) => {
             await specManager.navigateToDocument(specName, 'design');
         }),
 
-        vscode.commands.registerCommand('kfc.spec.navigate.tasks', async (specName: string) => {
+        vscode.commands.registerCommand('spec-ai-coder.spec.navigate.tasks', async (specName: string) => {
             await specManager.navigateToDocument(specName, 'tasks');
         }),
 
-        vscode.commands.registerCommand('kfc.spec.implTask', async (documentUri: vscode.Uri, lineNumber: number, taskDescription: string) => {
+        vscode.commands.registerCommand('spec-ai-coder.spec.implTask', async (documentUri: vscode.Uri, lineNumber: number, taskDescription: string) => {
             outputChannel.appendLine(`[Task Execute] Line ${lineNumber + 1}: ${taskDescription}`);
 
             // 更新任务状态为已完成
@@ -291,7 +289,7 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
             // 使用 Claude Code 执行任务
             await specManager.implTask(documentUri.fsPath, taskDescription);
         }),
-        vscode.commands.registerCommand('kfc.spec.refresh', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.spec.refresh', async () => {
             outputChannel.appendLine('[Manual Refresh] Refreshing spec explorer...');
             specExplorer.refresh();
         })
@@ -299,21 +297,21 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
 
     // Steering commands
     context.subscriptions.push(
-        vscode.commands.registerCommand('kfc.steering.create', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.create', async () => {
             await steeringManager.createCustom();
         }),
 
-        vscode.commands.registerCommand('kfc.steering.generateInitial', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.generateInitial', async () => {
             await steeringManager.init();
         }),
 
-        vscode.commands.registerCommand('kfc.steering.refine', async (item: any) => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.refine', async (item: any) => {
             // Item is always from tree view
             const uri = vscode.Uri.file(item.resourcePath);
             await steeringManager.refine(uri);
         }),
 
-        vscode.commands.registerCommand('kfc.steering.delete', async (item: any) => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.delete', async (item: any) => {
             outputChannel.appendLine(`[Steering] Deleting: ${item.label}`);
 
             // Use SteeringManager to delete the document and update CLAUDE.md
@@ -325,21 +323,21 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
         }),
 
         // CLAUDE.md commands
-        vscode.commands.registerCommand('kfc.steering.createUserRule', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.createUserRule', async () => {
             await steeringManager.createUserClaudeMd();
         }),
 
-        vscode.commands.registerCommand('kfc.steering.createProjectRule', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.createProjectRule', async () => {
             await steeringManager.createProjectClaudeMd();
         }),
 
-        vscode.commands.registerCommand('kfc.steering.refresh', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.steering.refresh', async () => {
             outputChannel.appendLine('[Manual Refresh] Refreshing steering explorer...');
             steeringExplorer.refresh();
         }),
 
         // Agents commands
-        vscode.commands.registerCommand('kfc.agents.refresh', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.agents.refresh', async () => {
             outputChannel.appendLine('[Manual Refresh] Refreshing agents explorer...');
             agentsExplorer.refresh();
         })
@@ -371,39 +369,21 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
 
     // Spec delete command
     context.subscriptions.push(
-        vscode.commands.registerCommand('kfc.spec.delete', async (item: any) => {
+        vscode.commands.registerCommand('spec-ai-coder.spec.delete', async (item: any) => {
             await specManager.delete(item.label);
         })
     );
 
-    // Claude Code integration commands
-    // (removed unused kfc.claude.implementTask command)
-
-    // Hooks commands (only refresh for Claude Code hooks)
+    // Overview and settings commands
     context.subscriptions.push(
-        vscode.commands.registerCommand('kfc.hooks.refresh', () => {
-            hooksExplorer.refresh();
-        }),
-
-        vscode.commands.registerCommand('kfc.hooks.copyCommand', async (command: string) => {
-            await vscode.env.clipboard.writeText(command);
-        })
-    );
-
-    // MCP commands
-    context.subscriptions.push(
-        vscode.commands.registerCommand('kfc.mcp.refresh', () => {
-            mcpExplorer.refresh();
-        }),
-
         // Update checker command
-        vscode.commands.registerCommand('kfc.checkForUpdates', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.checkForUpdates', async () => {
             outputChannel.appendLine('Manual update check requested');
             await updateChecker.checkForUpdates(true); // Force check
         }),
 
         // Overview and settings commands
-        vscode.commands.registerCommand('kfc.settings.open', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.settings.open', async () => {
             outputChannel.appendLine('Opening Kiro settings...');
 
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -445,25 +425,25 @@ function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecEx
             await vscode.window.showTextDocument(document);
         }),
 
-        vscode.commands.registerCommand('kfc.help.open', async () => {
-            outputChannel.appendLine('Opening Kiro help...');
+        vscode.commands.registerCommand('spec-ai-coder.help.open', async () => {
+            outputChannel.appendLine('Opening help...');
             const helpUrl = 'https://github.com/notdp/kiro-for-cc#readme';
             vscode.env.openExternal(vscode.Uri.parse(helpUrl));
         }),
 
-        vscode.commands.registerCommand('kfc.menu.open', async () => {
-            outputChannel.appendLine('Opening Kiro menu...');
+        vscode.commands.registerCommand('spec-ai-coder.menu.open', async () => {
+            outputChannel.appendLine('Opening menu...');
             await toggleViews();
         }),
 
         // Permission debug commands
-        vscode.commands.registerCommand('kfc.permission.check', async () => {
+        vscode.commands.registerCommand('spec-ai-coder.permission.check', async () => {
             // 使用新的 PermissionManager 检查真实的权限状态
             const hasPermission = await permissionManager.checkPermission();
             const configPath = require('os').homedir() + '/.claude.json';
 
             vscode.window.showInformationMessage(
-                `Claude Code Permission Status: ${hasPermission ? '✅ Granted' : '❌ Not Granted'}`
+                `Permission Status: ${hasPermission ? '✅ Granted' : '❌ Not Granted'}`
             );
 
             outputChannel.appendLine(`[Permission Check] Status: ${hasPermission}`);
