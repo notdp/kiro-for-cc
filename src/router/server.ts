@@ -1,4 +1,4 @@
-import { Server } from "@musistudio/llms";
+import Server = require("@musistudio/llms");
 import { readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 import { join } from "path";
 import * as vscode from 'vscode';
