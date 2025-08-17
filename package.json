@@ -4,7 +4,7 @@
   "description": "An all-in-one AI extension for spec-driven development with a powerful, built-in LLM router.",
   "version": "1.0.0",
   "publisher": "heisebaiyun",
-  "icon": "icons/spec-ai-coder.svg",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/notdp/kiro-for-cc"
