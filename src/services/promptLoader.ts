@@ -1,8 +1,4 @@
 import * as Handlebars from 'handlebars';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as glob from 'glob';
-import matter from 'gray-matter';
 import { 
   PromptTemplate, 
   PromptMetadata, 
@@ -10,6 +6,8 @@ import {
   ValidationResult 
 } from '../types/prompt.types';
 
+// Import all prompts from index
+import * as prompts from '../prompts/target';
 
 /**
  * Service for loading and rendering prompt templates
@@ -34,29 +32,21 @@ export class PromptLoader {
   }
 
   /**
-   * Initialize the loader by loading all prompts from the filesystem
+   * Initialize the loader by loading all prompts
    */
   public initialize(): void {
+    // Clear existing data
     this.prompts.clear();
     this.compiledTemplates.clear();
 
-    const promptsDir = path.join(__dirname, '..', 'prompts');
-    const files = glob.sync('**/*.md', { cwd: promptsDir });
+    // Load all prompts
+    const promptModules = Object.values(prompts);
 
-    for (const file of files) {
-        const filePath = path.join(promptsDir, file);
-        try {
-            const fileContent = fs.readFileSync(filePath, 'utf8');
-            const { data, content } = matter(fileContent);
-
-            const frontmatter = data as PromptFrontmatter;
-
-            if (frontmatter && frontmatter.id && content) {
-                this.registerPrompt({ frontmatter, content });
-            }
-        } catch (error) {
-            console.error(`Failed to load or parse prompt file: ${filePath}`, error);
-        }
+    // Register each prompt
+    for (const module of promptModules) {
+      if (module.frontmatter && module.content) {
+        this.registerPrompt(module as PromptTemplate);
+      }
     }
   }
 
@@ -66,8 +56,10 @@ export class PromptLoader {
   private registerPrompt(template: PromptTemplate): void {
     const { id } = template.frontmatter;
     
+    // Store the template
     this.prompts.set(id, template);
     
+    // Compile the template
     try {
       const compiled = Handlebars.compile(template.content);
       this.compiledTemplates.set(id, compiled);
@@ -98,11 +90,13 @@ export class PromptLoader {
       throw new Error(`Compiled template not found: ${promptId}`);
     }
 
+    // Validate required variables
     const validation = this.validateVariables(template.frontmatter, variables);
     if (!validation.valid) {
       throw new Error(`Variable validation failed: ${validation.errors?.join(', ')}`);
     }
 
+    // Render the template
     try {
       return compiled(variables);
     } catch (error) {
@@ -137,7 +131,7 @@ export class PromptLoader {
     const metadata: PromptMetadata[] = [];
 
     for (const [id, template] of this.prompts) {
-      const category = id.split('-')[0];
+      const category = id.split('-')[0]; // Extract category from ID
       metadata.push({
         id,
         name: template.frontmatter.name,
