@@ -16,7 +16,7 @@ let outputChannel: vscode.OutputChannel | null = null;
 
 
 // Function to configure logging
-export function configureLogging(config: { LOG?: boolean; LOG_LEVEL?: string }, channel?: vscode.OutputChannel)
+export function configureLogging(config: any, channel?: vscode.OutputChannel)
 {
   isLogEnabled = config.LOG !== false; // Default to true if not explicitly set to false
   if (channel) {

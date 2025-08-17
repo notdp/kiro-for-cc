@@ -82,8 +82,6 @@ const getUseModel = async (
     }
     return req.body.model;
   }
-  // if tokenCount is greater than the configured threshold, use the long contex
-t model
   const longContextThreshold = config.Router.longContextThreshold || 60000;
   const lastUsageThreshold =
     lastUsage &&
@@ -117,7 +115,6 @@ t model
       return model[1];
     }
   }
-  // If the model is claude-3-5-haiku, use the background model
   if (
     req.body.model?.startsWith("claude-3-5-haiku") &&
     config.Router.background
@@ -125,7 +122,6 @@ t model
     log("Using background model for ", req.body.model);
     return config.Router.background;
   }
-  // if exits thinking, use the think model
   if (req.body.thinking && config.Router.think) {
     log("Using think model for ", req.body.thinking);
     return config.Router.think;
@@ -141,7 +137,6 @@ t model
 };
 
 export const router = async (req: any, _res: any, config: any) => {
-  // Parse sessionId from metadata.user_id
   if (req.body.metadata?.user_id) {
     const parts = req.body.metadata.user_id.split("_session_");
     if (parts.length > 1) {
@@ -161,7 +156,7 @@ export const router = async (req: any, _res: any, config: any) => {
     if (config.CUSTOM_ROUTER_PATH) {
       try {
         const customRouter = require(config.CUSTOM_ROUTER_PATH);
-        req.tokenCount = tokenCount; // Pass token count to custom router
+        req.tokenCount = tokenCount;
         model = await customRouter(req, config);
       } catch (e: any) {
         log("failed to load custom router", e.message);

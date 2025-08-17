@@ -1,8 +1,8 @@
 {
-  "name": "spec-ai-coder",
-  "displayName": "SPEC AI Coder",
-  "description": "An all-in-one AI extension for spec-driven development with a powerful, built-in LLM router.",
-  "version": "1.0.0",
+  "name": "kiro-for-cc",
+  "displayName": "Kiro for Claude Code",
+  "description": "Spec-driven development with Claude Code - inspired by Kiro",
+  "version": "0.2.6",
   "publisher": "heisebaiyun",
   "icon": "icon.png",
   "repository": {
@@ -69,7 +69,7 @@
     "viewsWelcome": [
       {
         "view": "kfc.views.overview",
-        "contents": "Configure Kiro for Claude Code\n\n[$(gear) Open Kiro Settings](command:kfc.settings.open)\n[$(code) Open Router Settings](command:kfc.ccr.openSettings)\n[$(question) Help](command:kfc.help.open)"
+        "contents": "Configure Kiro for Claude Code\n\n[$(gear) Open Settings](command:kfc.settings.open)\n[$(question) Help](command:kfc.help.open)"
       },
       {
         "view": "kfc.views.specExplorer",
@@ -213,11 +213,6 @@
         "command": "kfc.spec.implTask",
         "title": "Implement Task",
         "category": "Kiro for CC"
-      },
-      {
-        "command": "kfc.ccr.openSettings",
-        "title": "Open CCR Settings",
-        "category": "Kiro for CC"
       }
     ],
     "menus": {
@@ -311,11 +306,6 @@
           "default": "claude",
           "description": "Path to Claude Code CLI executable"
         },
-        "kfc.ccr.path": {
-          "type": "string",
-          "default": "ccr",
-          "description": "Path to the Claude Code Router (ccr) executable."
-        },
         "kfc.autoRefreshSpecs": {
           "type": "boolean",
           "default": true,
@@ -395,13 +385,13 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.x",
     "@types/vscode": "^1.84.0",
-    "@vscode/vsce": "^2.29.0",
     "concurrently": "^9.2.0",
     "copy-webpack-plugin": "^13.0.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.4.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.5.3",
+    "@vscode/vsce": "^2.29.0",
     "webpack": "^5.100.2",
     "webpack-cli": "^6.0.1"
   }

@@ -1,16 +1,11 @@
-import { FastifyRequest, FastifyReply } from "fastify";
-
 export const apiKeyAuth =
   (config: any) =>
-  async (req: FastifyRequest, reply: FastifyReply, done: (err?: Error) => void) => {
-    // Public endpoints that don't require authentication when run inside the extension
-    if (["/", "/health", "/api/config", "/api/transformers"].includes(req.url) || req.url.startsWith("/ui")) {
-      return done();
-    }
-
+  async (req: any, reply: any, done: (err?: Error) => void) => {
+    // When running inside the extension, we can simplify the auth logic.
+    // The webview is a trusted environment.
+    // For API calls (e.g. from another tool), the API key is still relevant.
     const apiKey = config.APIKEY;
-    if (!apiKey) {
-      // If no API key is set, all internal calls are allowed.
+    if (!apiKey || !req.url.startsWith('/v1/')) {
       return done();
     }
 

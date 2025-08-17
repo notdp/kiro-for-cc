@@ -1,26 +1,14 @@
 import * as vscode from 'vscode';
-import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ConfigManager } from '../utils/configManager';
-import { ChatWebview } from '../features/chat/chatWebview';
 import { VSC_CONFIG_NAMESPACE } from '../constants';
 import { getPermissionManager } from '../extension';
-
-interface ClaudeCodeRequest {
-    model: string;
-    messages: any[];
-    system?: any;
-    tools?: any[];
-    thinking?: any;
-    metadata?: {
-        user_id: string;
-    };
-}
 
 export class ClaudeCodeProvider {
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.OutputChannel;
     private configManager: ConfigManager;
-    private routerBaseUrl: string;
 
     constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel) {
         this.context = context;
@@ -28,10 +16,6 @@ export class ClaudeCodeProvider {
 
         this.configManager = ConfigManager.getInstance();
         this.configManager.loadSettings();
-
-        // TODO: Make the port configurable from the ccr settings file
-        this.routerBaseUrl = 'http://localhost:3456';
-
         // Listen for configuration changes
         vscode.workspace.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration(VSC_CONFIG_NAMESPACE)) {
@@ -40,68 +24,98 @@ export class ClaudeCodeProvider {
         });
     }
 
-    private createPayloadFromPrompt(prompt: string): ClaudeCodeRequest {
-        // This is a simplified example.
-        // A more advanced implementation would parse the prompt to separate system messages, user messages, tools, etc.
-        // For now, we assume the entire prompt is a user message.
-        return {
-            model: 'default', // The router will resolve this
-            messages: [{ role: 'user', content: prompt }],
-            metadata: {
-                user_id: `vscode-session_${Date.now()}`
-            }
-        };
+    /**
+     * Create a temporary file with content
+     */
+    private async createTempFile(content: string, prefix: string = 'prompt'): Promise<string> {
+        const tempDir = this.context.globalStorageUri.fsPath;
+        await vscode.workspace.fs.createDirectory(this.context.globalStorageUri);
+
+        const tempFile = path.join(tempDir, `${prefix}-${Date.now()}.md`);
+        await fs.promises.writeFile(tempFile, content);
+
+        return this.convertPathIfWSL(tempFile);
     }
 
-    private async invoke(prompt: string): Promise<any> {
-        this.outputChannel.appendLine(`[ClaudeCodeProvider] Invoking router via HTTP...`);
-        const payload = this.createPayloadFromPrompt(prompt);
 
-        try {
-            const response = await axios.post(`${this.routerBaseUrl}/v1/messages`, payload, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            this.outputChannel.appendLine(`[ClaudeCodeProvider] Received response from router.`);
-            return response.data;
-        } catch (error: any) {
-            this.outputChannel.appendLine(`ERROR: Failed to POST to Claude Code Router: ${error.message}`);
-            if (error.response) {
-                this.outputChannel.appendLine(`Response data: ${JSON.stringify(error.response.data)}`);
-            }
-            vscode.window.showErrorMessage(`Failed to communicate with Claude Code Router: ${error.message}`);
-            throw error;
+
+    /**
+     * Convert Windows path to WSL path if needed
+     * Example: C:\Users\username\file.txt -> /mnt/c/Users/username/file.txt
+     */
+    private convertPathIfWSL(filePath: string): string {
+        // Check if running on Windows and path is a Windows path
+        if (process.platform === 'win32' && filePath.match(/^[A-Za-z]:\\/)) {
+            // Replace backslashes with forward slashes
+            let wslPath = filePath.replace(/\\/g, '/');
+            // Convert drive letter to WSL format (C: -> /mnt/c)
+            wslPath = wslPath.replace(/^([A-Za-z]):/, (_match, drive) => `/mnt/${drive.toLowerCase()}`);
+            return wslPath;
         }
+
+        // Return original path if not on Windows or not a Windows path
+        return filePath;
     }
 
     /**
-     * Invokes the router and displays the interaction in the Chat Webview.
+     * Invokes Claude Code in a new terminal on the right side (split view) with the given prompt
+     * Returns the terminal instance for potential renaming
      */
-    async invokeClaudeSplitView(prompt: string, title: string = 'Kiro for Claude Code'): Promise<vscode.Terminal | undefined> {
+    async invokeClaudeSplitView(prompt: string, title: string = 'Kiro for Claude Code'): Promise<vscode.Terminal> {
         try {
-            // Create or show the chat panel
-            ChatWebview.createOrShow(this.context.extensionUri);
-            const chatPanel = ChatWebview.currentPanel;
-
-            if (chatPanel) {
-                // Post the user's prompt to the webview
-                chatPanel.postMessage({ command: 'addUserMessage', text: prompt });
-
-                // Get the response from the router
-                const response = await this.invoke(prompt);
-                const responseContent = response.content.map((c: any) => c.text).join('\n');
-
-                // Post the bot's response to the webview
-                chatPanel.postMessage({ command: 'addBotMessage', text: responseContent });
+            // 获取 PermissionManager 并检查权限
+            const permissionManager = getPermissionManager();
+            if (permissionManager) {
+                const hasPermission = await permissionManager.checkPermission();
+                if (!hasPermission) {
+                    this.outputChannel.appendLine('[ClaudeCodeProvider] No permission, showing setup');
+                    const granted = await permissionManager.showPermissionSetup();
+                    if (!granted) {
+                        throw new Error('Claude Code permissions not granted');
+                    }
+                }
             }
+            // Create temp file with the prompt
+            const promptFilePath = await this.createTempFile(prompt, 'prompt');
 
-            // The method signature still requires a Terminal, but we no longer use it.
-            // Returning undefined is now the standard behavior.
-            return undefined;
+            // Build the command - simple now, just claude with input redirection
+            let command = `claude --permission-mode bypassPermissions < "${promptFilePath}"`;
+
+            // Create a new terminal in the editor area (right side)
+            const terminal = vscode.window.createTerminal({
+                name: title,
+                cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+                location: {
+                    viewColumn: vscode.ViewColumn.Two  // Open in the second column (right side)
+                }
+            });
+
+            // Show the terminal
+            terminal.show();
+
+            // Send the command directly without echo messages
+            const delay = this.configManager.getTerminalDelay();
+            setTimeout(() => {
+                terminal.sendText(command, true); // true = add newline to execute
+            }, delay); // Configurable delay to allow venv activation
+
+            // Clean up temp files after a delay
+            setTimeout(async () => {
+                try {
+                    await fs.promises.unlink(promptFilePath);
+                    this.outputChannel.appendLine(`Cleaned up prompt file: ${promptFilePath}`);
+                } catch (e) {
+                    // Ignore cleanup errors
+                    this.outputChannel.appendLine(`Failed to cleanup temp file: ${e}`);
+                }
+            }, 30000); // 30 seconds delay to give Claude time to read the file
+
+            // Return the terminal for potential renaming
+            return terminal;
 
         } catch (error) {
-            this.outputChannel.appendLine(`ERROR in invokeClaudeSplitView: ${error}`);
-            // The error is already shown by the invoke method and in the chat panel.
-            ChatWebview.currentPanel?.postMessage({ command: 'addBotMessage', text: `Error: ${error}` });
+            this.outputChannel.appendLine(`ERROR: Failed to send to Claude Code: ${error}`);
+            vscode.window.showErrorMessage(`Failed to run Claude Code: ${error}`);
             throw error;
         }
     }
@@ -125,25 +139,107 @@ export class ClaudeCodeProvider {
 
     /**
      * Execute Claude command with specific tools in background
-     * This is now refactored to use the internal router server.
+     * Returns a promise that resolves when the command completes
      */
     async invokeClaudeHeadless(
         prompt: string
     ): Promise<{ exitCode: number | undefined; output?: string }> {
-        try {
-            const response = await this.invoke(prompt);
-            // Success
-            return {
-                exitCode: 0,
-                output: JSON.stringify(response)
-            };
-        } catch(e) {
-            // Failure
-            return {
-                exitCode: 1,
-                output: e instanceof Error ? e.message : String(e)
-            };
+        // 获取 PermissionManager 实例并检查权限
+        const permissionManager = getPermissionManager();
+        if (permissionManager) {
+            const hasPermission = await permissionManager.checkPermission();
+            if (!hasPermission) {
+                this.outputChannel.appendLine('[ClaudeCodeProvider] No permission, showing setup');
+                const granted = await permissionManager.showPermissionSetup();
+                if (!granted) {
+                    throw new Error('Claude Code permissions not granted');
+                }
+            }
         }
+
+        this.outputChannel.appendLine(`[ClaudeCodeProvider] Invoking Claude Code in headless mode`);
+        this.outputChannel.appendLine(`========================================`);
+        this.outputChannel.appendLine(prompt);
+        this.outputChannel.appendLine(`========================================`);
+
+        // Get the workspace folder
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        const cwd = workspaceFolder?.uri.fsPath;
+
+        // Create temp file with the prompt
+        const promptFilePath = await this.createTempFile(prompt, 'background-prompt');
+
+        // Build command using file redirection
+        let commandLine = `claude --permission-mode bypassPermissions < "${promptFilePath}"`;
+
+        // Create hidden terminal for background execution
+        const terminal = vscode.window.createTerminal({
+            name: 'Claude Code Background',
+            cwd,
+            hideFromUser: true
+        });
+
+        return new Promise((resolve) => {
+            let shellIntegrationChecks = 0;
+            // Wait for shell integration to be available
+            const checkShellIntegration = setInterval(() => {
+                shellIntegrationChecks++;
+
+                if (terminal.shellIntegration) {
+                    clearInterval(checkShellIntegration);
+
+                    // Execute command with shell integration
+                    const execution = terminal.shellIntegration.executeCommand(commandLine);
+
+                    // Listen for command completion
+                    const disposable = vscode.window.onDidEndTerminalShellExecution(event => {
+                        if (event.terminal === terminal && event.execution === execution) {
+                            disposable.dispose();
+
+                            // Only log errors
+                            if (event.exitCode !== 0) {
+                                this.outputChannel.appendLine(`[Claude] Command failed with exit code: ${event.exitCode}`);
+                                this.outputChannel.appendLine(`[Claude] Command was: ${commandLine}`);
+                            }
+
+                            resolve({
+                                exitCode: event.exitCode,
+                                output: undefined
+                            });
+
+                            // Clean up terminal and temp file after a short delay
+                            setTimeout(async () => {
+                                terminal.dispose();
+                                try {
+                                    await fs.promises.unlink(promptFilePath);
+                                    this.outputChannel.appendLine(`[Claude] Cleaned up temp file: ${promptFilePath}`);
+                                } catch (e) {
+                                    // Ignore cleanup errors
+                                    this.outputChannel.appendLine(`[Claude] Failed to cleanup temp file: ${e}`);
+                                }
+                            }, 1000);
+                        }
+                    });
+                } else if (shellIntegrationChecks > 20) { // After 2 seconds
+                    // Fallback: execute without shell integration
+                    clearInterval(checkShellIntegration);
+                    this.outputChannel.appendLine(`[Claude] Shell integration not available, using fallback mode`);
+                    terminal.sendText(commandLine);
+
+                    // Resolve after a reasonable delay since we can't track completion
+                    setTimeout(async () => {
+                        resolve({ exitCode: undefined });
+                        terminal.dispose();
+                        // Clean up temp file
+                        try {
+                            await fs.promises.unlink(promptFilePath);
+                        } catch (e) {
+                            // Ignore cleanup errors
+                        }
+                    }, 5000);
+                }
+            }, 100);
+        });
     }
 
     /**
