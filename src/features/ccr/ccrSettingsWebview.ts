@@ -135,7 +135,7 @@ export class CcrSettingsWebview {
         }
         try {
             const response = await axios.get('https://openrouter.ai/api/v1/models');
-            const models = response.data.data.map((model: any) => model.id);
+            const models = (response.data as any).data.map((model: any) => model.id);
             this._panel.webview.postMessage({ command: 'modelsFetched', index, models });
         } catch (error: any) {
             vscode.window.showErrorMessage(`Failed to fetch models: ${error.message}`);
@@ -192,7 +192,7 @@ module.exports.response = function(response) {
     }
 
     private _getHtmlForWebview(webview: vscode.Webview): string {
-        return \`<!DOCTYPE html>
+        return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
@@ -327,7 +327,7 @@ module.exports.response = function(response) {
                         config.Providers.forEach((provider, index) => {
                             const providerEl = document.createElement('div');
                             providerEl.className = 'provider';
-                            providerEl.innerHTML = \`
+                            providerEl.innerHTML = \\\`
                                 <h3>Provider: \${provider.name || ''}</h3>
                                 <label for="provider-name-\${index}">Name</label>
                                 <input type="text" id="provider-name-\${index}" value="\${provider.name || ''}" data-index="\${index}" data-field="name">
@@ -343,7 +343,7 @@ module.exports.response = function(response) {
                                 <label for="provider-transformer-\${index}">Transformer Config (JSON)</label>
                                 <textarea id="provider-transformer-\${index}" data-index="\${index}" data-field="transformer">\${provider.transformer ? JSON.stringify(provider.transformer, null, 2) : ''}</textarea>
                                 <button class="remove-btn" data-index="\${index}">Remove Provider</button>
-                            \`;
+                            \\\`;
                             providersList.appendChild(providerEl);
                             const apiUrlInput = providerEl.querySelector(\`#provider-api_base_url-\${index}\`);
                             toggleFetchButton(apiUrlInput, index);
@@ -359,13 +359,13 @@ module.exports.response = function(response) {
                         const availableModels = config.Providers.flatMap(p => p.models.map(m => \`\${p.name},\${m}\`));
                         routes.forEach(route => {
                             const currentValue = config.Router[route] || '';
-                            routerHTML += \`
+                            routerHTML += \\\`
                                 <label for="router-\${route}">\${route}</label>
                                 <select id="router-\${route}" data-field="\${route}">
                                     <option value="">-- Not Set --</option>
                                     \${availableModels.map(model => \`<option value="\${model}" \${model === currentValue ? 'selected' : ''}>\${model}</option>\`).join('')}
                                 </select>
-                            \`;
+                            \\\`;
                         });
                         routerConfigEl.innerHTML = routerHTML;
                     }
@@ -373,12 +373,12 @@ module.exports.response = function(response) {
                     function renderSTT() {
                         const sttConfigEl = document.getElementById('stt-config');
                         if (!config.STT) config.STT = {};
-                        sttConfigEl.innerHTML = \`
+                        sttConfigEl.innerHTML = \\\`
                             <label for="stt-provider">Provider (e.g., openai-whisper)</label>
                             <input type="text" id="stt-provider" value="\${config.STT.provider || ''}">
                             <label for="stt-api-key">API Key</label>
                             <input type="text" id="stt-api-key" value="\${config.STT.apiKey || ''}">
-                        \`;
+                        \\\`;
                     }
 
                     function renderCustomTransformers(files) {
@@ -390,10 +390,10 @@ module.exports.response = function(response) {
                         files.forEach(file => {
                             const itemEl = document.createElement('div');
                             itemEl.className = 'transformer-item';
-                            itemEl.innerHTML = \`
+                            itemEl.innerHTML = \\\`
                                 <span>\${file}</span>
                                 <button class="edit-transformer-btn" data-file="\${file}">Edit</button>
-                            \`;
+                            \\\`;
                             customTransformersList.appendChild(itemEl);
                         });
                     }
@@ -452,6 +452,6 @@ module.exports.response = function(response) {
                     });
                 </script>
             </body>
-            </html>\`;
+            </html>`;
     }
 }
