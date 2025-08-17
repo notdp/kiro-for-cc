@@ -18,9 +18,20 @@ const extensionConfig = {
     filename: 'extension.js',
     libraryTarget: 'commonjs2'
   },
-  externals: {
-    vscode: 'commonjs vscode' // vscode 模块是外部依赖，不打包进去
-  },
+  externals: [
+    {
+      vscode: 'commonjs vscode' // vscode 模块是外部依赖，不打包进去
+    },
+    // Function to handle dynamic requires
+    function ({ context, request }, callback) {
+      if (/^@?[\w\.\-/]+$/.test(request)) {
+        // If it's a regular module request, handle it normally.
+        return callback();
+      }
+      // If it's a dynamic require with a variable, mark it as external.
+      return callback(null, 'commonjs ' + request);
+    },
+  ],
   resolve: {
     // 支持读取 TypeScript 和 JavaScript 文件
     extensions: ['.ts', '.js']
