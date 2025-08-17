@@ -8,7 +8,7 @@ export const createServer = (config: any): Server => {
   const server = new Server(config);
 
   // Add endpoint to read config.json
-  server.app.get("/api/config", async (req, reply) => {
+  server.app.get("/api/config", async (req: any, reply: any) => {
     return await readConfigFile();
   });
 
@@ -25,7 +25,7 @@ export const createServer = (config: any): Server => {
   });
 
   // Add endpoint to save config.json
-  server.app.post("/api/config", async (req, reply) => {
+  server.app.post("/api/config", async (req: any, reply: any) => {
     const newConfig = req.body;
 
     // Backup existing config file if it exists

@@ -97,8 +97,8 @@ async function run(options: RunOptions) {
     logger: loggerConfig,
   });
   // Add async preHandler hook for authentication
-  server.addHook("preHandler", async (req, reply) => {
-    return new Promise((resolve, reject) => {
+  server.addHook("preHandler", async (req: any, reply: any) => {
+    return new Promise<void>((resolve, reject) => {
       const done = (err?: Error) => {
         if (err) reject(err);
         else resolve();
@@ -107,12 +107,12 @@ async function run(options: RunOptions) {
       apiKeyAuth(config)(req, reply, done).catch(reject);
     });
   });
-  server.addHook("preHandler", async (req, reply) => {
+  server.addHook("preHandler", async (req: any, reply: any) => {
     if (req.url.startsWith("/v1/messages")) {
       router(req, reply, config);
     }
   });
-  server.addHook("onSend", async (req, reply, payload) => {
+  server.addHook("onSend", async (req: any, reply: any, payload: any) => {
     if (req.sessionId && req.url.startsWith("/v1/messages")) {
       if (payload instanceof ReadableStream) {
         const [originalStream, clonedStream] = payload.tee();
