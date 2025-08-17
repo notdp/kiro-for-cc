@@ -1,8 +1,8 @@
 {
   "name": "kiro-for-cc",
-  "displayName": "Kiro for Claude Code",
-  "description": "Spec-driven development with Claude Code - inspired by Kiro",
-  "version": "0.2.6",
+  "displayName": "Kiro for CC",
+  "description": "An all-in-one AI extension for spec-driven development with a powerful, built-in LLM router.",
+  "version": "1.0.0",
   "publisher": "heisebaiyun",
   "icon": "icon.png",
   "repository": {
@@ -25,325 +25,244 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "kfc",
-          "title": "Kiro for CC",
-          "icon": "./icons/kiro.svg"
+          "id": "spec-ai-coder-activitybar",
+          "title": "SPEC AI Coder",
+          "icon": "./icons/spec-ai-coder.svg"
         }
       ]
     },
     "views": {
-      "kfc": [
+      "spec-ai-coder-activitybar": [
         {
-          "id": "kfc.views.specExplorer",
+          "id": "spec-ai-coder.views.specExplorer",
           "name": "Specs",
-          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.kfc.views.specs.visible"
+          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.spec-ai-coder.views.specs.visible"
         },
         {
-          "id": "kfc.views.agentsExplorer",
+          "id": "spec-ai-coder.views.agentsExplorer",
           "name": "Agents",
-          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.kfc.views.agents.visible"
+          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.spec-ai-coder.views.agents.visible"
         },
         {
-          "id": "kfc.views.steeringExplorer",
+          "id": "spec-ai-coder.views.steeringExplorer",
           "name": "Steering",
-          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.kfc.views.steering.visible"
+          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.spec-ai-coder.views.steering.visible"
         },
         {
-          "id": "kfc.views.mcpServerStatus",
-          "name": "MCP Servers",
-          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.kfc.views.mcp.visible"
-        },
-        {
-          "id": "kfc.views.hooksStatus",
-          "name": "Hooks",
-          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.kfc.views.hooks.visible"
-        },
-        {
-          "id": "kfc.views.overview",
+          "id": "spec-ai-coder.views.settings",
           "name": "Settings",
           "visibility": "collapsed",
-          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.kfc.views.settings.visible"
+          "when": "!(workbenchState == empty || workspaceFolderCount == 0) && config.spec-ai-coder.views.settings.visible"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "kfc.views.overview",
-        "contents": "Configure Kiro for Claude Code\n\n[$(gear) Open Settings](command:kfc.settings.open)\n[$(question) Help](command:kfc.help.open)"
+        "view": "spec-ai-coder.views.settings",
+        "contents": "Configure SPEC AI Coder\n\n[$(gear) Open Router Settings](command:spec-ai-coder.ccr.openSettings)\n[$(question) Help](command:spec-ai-coder.help.open)"
       },
       {
-        "view": "kfc.views.specExplorer",
-        "contents": "Build complex features with structured planning\n\n[$(plus) Create New Spec](command:kfc.spec.create)\n\n[$(sparkle) Create New Spec With Agents](command:kfc.spec.createWithAgents)"
+        "view": "spec-ai-coder.views.specExplorer",
+        "contents": "Build complex features with structured planning\n\n[$(plus) Create New Spec](command:spec-ai-coder.spec.create)\n\n[$(sparkle) Create New Spec With Agents](command:spec-ai-coder.spec.createWithAgents)"
       },
       {
-        "view": "kfc.views.hooksStatus",
-        "contents": "Automate repetitive tasks with smart triggers"
-      },
-      {
-        "view": "kfc.views.steeringExplorer",
-        "contents": "[$(globe) Create User Rule](command:kfc.steering.createUserRule)\n\n[$(root-folder) Create Project Rule](command:kfc.steering.createProjectRule)"
-      },
-      {
-        "view": "kfc.views.mcpServerStatus",
-        "contents": "Connect to external tools and services\nUse 'claude mcp add' to configure servers"
+        "view": "spec-ai-coder.views.steeringExplorer",
+        "contents": "[$(globe) Create User Rule](command:spec-ai-coder.steering.createUserRule)\n\n[$(root-folder) Create Project Rule](command:spec-ai-coder.steering.createProjectRule)"
       }
     ],
     "commands": [
       {
-        "command": "kfc.spec.create",
+        "command": "spec-ai-coder.spec.create",
         "title": "Create New Spec",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(plus)"
       },
       {
-        "command": "kfc.spec.createWithAgents",
+        "command": "spec-ai-coder.spec.createWithAgents",
         "title": "New Spec with Agents",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(sparkle)"
       },
       {
-        "command": "kfc.steering.create",
+        "command": "spec-ai-coder.steering.create",
         "title": "Create Custom Steering",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(plus)"
       },
       {
-        "command": "kfc.steering.generateInitial",
+        "command": "spec-ai-coder.steering.generateInitial",
         "title": "Init Steering",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(sparkle)"
       },
       {
-        "command": "kfc.steering.refine",
+        "command": "spec-ai-coder.steering.refine",
         "title": "Refine Steering",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(sparkle)"
       },
       {
-        "command": "kfc.spec.delete",
+        "command": "spec-ai-coder.spec.delete",
         "title": "Delete Spec",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(trash)"
       },
       {
-        "command": "kfc.steering.delete",
+        "command": "spec-ai-coder.steering.delete",
         "title": "Delete Steering",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(trash)"
       },
       {
-        "command": "kfc.steering.createUserRule",
+        "command": "spec-ai-coder.steering.createUserRule",
         "title": "Create User Rule",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(globe)"
       },
       {
-        "command": "kfc.steering.createProjectRule",
+        "command": "spec-ai-coder.steering.createProjectRule",
         "title": "Create Project Rule",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(root-folder)"
       },
       {
-        "command": "kfc.hooks.refresh",
-        "title": "Refresh Hooks",
-        "category": "Kiro for CC",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "kfc.mcp.refresh",
-        "title": "Refresh MCP Status",
-        "category": "Kiro for CC",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "kfc.settings.open",
-        "title": "Kiro Settings",
-        "category": "Kiro for CC",
+        "command": "spec-ai-coder.settings.open",
+        "title": "Open Kiro Settings",
+        "category": "SPEC AI Coder",
         "icon": "$(gear)"
       },
       {
-        "command": "kfc.checkForUpdates",
-        "title": "Check for Updates",
-        "category": "Kiro for CC",
-        "icon": "$(sync)"
-      },
-      {
-        "command": "kfc.spec.refresh",
+        "command": "spec-ai-coder.spec.refresh",
         "title": "Refresh Specs",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(refresh)"
       },
       {
-        "command": "kfc.steering.refresh",
+        "command": "spec-ai-coder.steering.refresh",
         "title": "Refresh Steering",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(refresh)"
       },
       {
-        "command": "kfc.agents.refresh",
+        "command": "spec-ai-coder.agents.refresh",
         "title": "Refresh Agents",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(refresh)"
       },
       {
-        "command": "kfc.help.open",
-        "title": "Kiro Help",
-        "category": "Kiro for CC",
+        "command": "spec-ai-coder.help.open",
+        "title": "Help",
+        "category": "SPEC AI Coder",
         "icon": "$(question)"
       },
       {
-        "command": "kfc.menu.open",
+        "command": "spec-ai-coder.menu.open",
         "title": "Kiro Menu",
-        "category": "Kiro for CC",
+        "category": "SPEC AI Coder",
         "icon": "$(ellipsis)"
       },
       {
-        "command": "kfc.permission.check",
-        "title": "Check Permission Status",
-        "category": "Kiro for CC",
-        "icon": "$(info)"
-      },
-      {
-        "command": "kfc.permission.reset",
-        "title": "Reset Permissions",
-        "category": "Kiro for CC",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "kfc.spec.implTask",
+        "command": "spec-ai-coder.spec.implTask",
         "title": "Implement Task",
-        "category": "Kiro for CC"
+        "category": "SPEC AI Coder"
+      },
+      {
+        "command": "spec-ai-coder.ccr.openSettings",
+        "title": "Open Router Settings",
+        "category": "SPEC AI Coder"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "kfc.menu.open",
-          "when": "view == kfc.views.overview",
+          "command": "spec-ai-coder.menu.open",
+          "when": "view == spec-ai-coder.views.settings",
           "group": "navigation"
         },
         {
-          "command": "kfc.spec.create",
-          "when": "view == kfc.views.specExplorer",
+          "command": "spec-ai-coder.spec.create",
+          "when": "view == spec-ai-coder.views.specExplorer",
           "group": "navigation@1"
         },
         {
-          "command": "kfc.spec.createWithAgents",
-          "when": "view == kfc.views.specExplorer",
+          "command": "spec-ai-coder.spec.createWithAgents",
+          "when": "view == spec-ai-coder.views.specExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "kfc.spec.refresh",
-          "when": "view == kfc.views.specExplorer",
+          "command": "spec-ai-coder.spec.refresh",
+          "when": "view == spec-ai-coder.views.specExplorer",
           "group": "navigation@3"
         },
         {
-          "command": "kfc.steering.generateInitial",
-          "when": "view == kfc.views.steeringExplorer",
+          "command": "spec-ai-coder.steering.generateInitial",
+          "when": "view == spec-ai-coder.views.steeringExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "kfc.steering.create",
-          "when": "view == kfc.views.steeringExplorer",
+          "command": "spec-ai-coder.steering.create",
+          "when": "view == spec-ai-coder.views.steeringExplorer",
           "group": "navigation@1"
         },
         {
-          "command": "kfc.steering.refresh",
-          "when": "view == kfc.views.steeringExplorer",
+          "command": "spec-ai-coder.steering.refresh",
+          "when": "view == spec-ai-coder.views.steeringExplorer",
           "group": "navigation@3"
         },
         {
-          "command": "kfc.mcp.refresh",
-          "when": "view == kfc.views.mcpServerStatus",
-          "group": "navigation"
-        },
-        {
-          "command": "kfc.hooks.refresh",
-          "when": "view == kfc.views.hooksStatus",
-          "group": "navigation"
-        },
-        {
-          "command": "kfc.agents.refresh",
-          "when": "view == kfc.views.agentsExplorer",
+          "command": "spec-ai-coder.agents.refresh",
+          "when": "view == spec-ai-coder.views.agentsExplorer",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "kfc.spec.delete",
-          "when": "view == kfc.views.specExplorer && viewItem == spec",
+          "command": "spec-ai-coder.spec.delete",
+          "when": "view == spec-ai-coder.views.specExplorer && viewItem == spec",
           "group": "7_modification"
         },
         {
-          "command": "kfc.steering.refine",
-          "when": "view == kfc.views.steeringExplorer && viewItem == steering-document",
+          "command": "spec-ai-coder.steering.refine",
+          "when": "view == spec-ai-coder.views.steeringExplorer && viewItem == steering-document",
           "group": "inline"
         },
         {
-          "command": "kfc.steering.delete",
-          "when": "view == kfc.views.steeringExplorer && viewItem == steering-document",
+          "command": "spec-ai-coder.steering.delete",
+          "when": "view == spec-ai-coder.views.steeringExplorer && viewItem == steering-document",
           "group": "7_modification"
         }
       ],
       "commandPalette": [
         {
-          "command": "kfc.spec.create"
+          "command": "spec-ai-coder.spec.create"
         },
         {
-          "command": "kfc.steering.create",
+          "command": "spec-ai-coder.steering.create",
           "when": "workspaceFolderCount > 0"
-        },
-        {
-          "command": "kfc.checkForUpdates"
         }
       ]
     },
     "configuration": {
-      "title": "Kiro for Claude Code",
+      "title": "SPEC AI Coder",
       "properties": {
-        "kfc.claudePath": {
-          "type": "string",
-          "default": "claude",
-          "description": "Path to Claude Code CLI executable"
-        },
-        "kfc.autoRefreshSpecs": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically refresh specs when requirements are saved"
-        },
-        "kfc.showWelcomeMessage": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show welcome message on startup"
-        },
-        "kfc.views.specs.visible": {
+        "spec-ai-coder.views.specs.visible": {
           "type": "boolean",
           "default": true,
           "description": "Show Specs view"
         },
-        "kfc.views.agents.visible": {
+        "spec-ai-coder.views.agents.visible": {
           "type": "boolean",
           "default": true,
           "description": "Show Agents view"
         },
-        "kfc.views.hooks.visible": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show Agent Hooks view"
-        },
-        "kfc.views.steering.visible": {
+        "spec-ai-coder.views.steering.visible": {
           "type": "boolean",
           "default": true,
           "description": "Show Agent Steering view"
         },
-        "kfc.views.mcp.visible": {
+        "spec-ai-coder.views.settings.visible": {
           "type": "boolean",
           "default": true,
-          "description": "Show MCP Servers view"
-        },
-        "kfc.views.settings.visible": {
-          "type": "boolean",
-          "default": false,
           "description": "Show Settings view"
         }
       }
@@ -351,13 +270,12 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package-web",
-    "compile": "npm run build-prompts && tsc -p ./",
-    "watch": "concurrently \"tsc -watch -p ./\" \"node scripts/watch-prompts.js\"",
-    "package": "vsce package",
-    "build-prompts": "node scripts/build-prompts.js",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package",
     "compile-web": "webpack --mode development",
     "watch-web": "webpack --mode development --watch",
-    "package-web": "npm run build-prompts && webpack --mode production --devtool hidden-source-map",
+    "package-web": "webpack --mode production --devtool hidden-source-map",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -369,19 +287,22 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@types/axios": "^0.9.36",
     "@types/glob": "^8.1.0",
     "@types/handlebars": "^4.0.40",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.x",
     "@types/vscode": "^1.84.0",
+    "@vscode/vsce": "^2.29.0",
+    "axios": "^1.11.0",
     "concurrently": "^9.2.0",
     "copy-webpack-plugin": "^13.0.0",
+    "glob": "^10.4.2",
     "jest": "^29.7.0",
     "ts-jest": "^29.4.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.3.0",
-    "vsce": "^2.15.0",
     "webpack": "^5.100.2",
     "webpack-cli": "^6.0.1"
   }
