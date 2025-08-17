@@ -45,13 +45,17 @@ export class PromptLoader {
 
     for (const file of files) {
         const filePath = path.join(promptsDir, file);
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        const { data, content } = matter(fileContent);
+        try {
+            const fileContent = fs.readFileSync(filePath, 'utf8');
+            const { data, content } = matter(fileContent);
 
-        const frontmatter = data as PromptFrontmatter;
+            const frontmatter = data as PromptFrontmatter;
 
-        if (frontmatter && frontmatter.id && content) {
-            this.registerPrompt({ frontmatter, content });
+            if (frontmatter && frontmatter.id && content) {
+                this.registerPrompt({ frontmatter, content });
+            }
+        } catch (error) {
+            console.error(`Failed to load or parse prompt file: ${filePath}`, error);
         }
     }
   }

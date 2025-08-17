@@ -6,13 +6,10 @@ import { initConfig, initDir, cleanupLogFiles } from "./utils";
 import { createServer } from "./server";
 import { router } from "./utils/router";
 import { apiKeyAuth } from "./middleware/auth";
-import { CONFIG_FILE } from "./constants";
-import createWriteStream from "pino-rotating-file-stream";
-import { HOME_DIR } from "./constants";
+import { CONFIG_FILE, HOME_DIR } from "./constants";
 import { configureLogging } from "./utils/log";
 import { sessionUsageCache } from "./utils/cache";
 import * as vscode from 'vscode';
-
 
 async function initializeClaudeConfig() {
   const homeDir = homedir();
@@ -39,17 +36,15 @@ interface RunOptions {
   outputChannel: vscode.OutputChannel;
 }
 
-async function run(options: RunOptions) {
+export async function run(options: RunOptions) {
   const { outputChannel } = options;
 
   await initializeClaudeConfig();
   await initDir();
-  // Clean up old log files, keeping only the 10 most recent ones
   await cleanupLogFiles();
   const config = await initConfig();
 
-  // Configure logging based on config
-  configureLogging(config);
+  configureLogging(config, outputChannel);
 
   let HOST = config.HOST;
 
@@ -59,32 +54,13 @@ async function run(options: RunOptions) {
   }
 
   const port = config.PORT || 3456;
-
   outputChannel.appendLine(`Starting router server on ${HOST}:${port}`);
 
-  // Use port from environment variable if set (for background process)
-  const servicePort = process.env.SERVICE_PORT
-    ? parseInt(process.env.SERVICE_PORT)
-    : port;
-
-  // Configure logger based on config settings
-  const loggerConfig =
-    config.LOG !== false
-      ? {
-          level: config.LOG_LEVEL || "debug",
-          stream: createWriteStream({
-            path: HOME_DIR,
-            filename: config.LOGNAME || `./logs/ccr-${+new Date()}.log`,
-            maxFiles: 3,
-            interval: "1d",
-          }),
-        }
-      : false;
+  const servicePort = process.env.SERVICE_PORT ? parseInt(process.env.SERVICE_PORT) : port;
 
   const server = createServer({
     jsonPath: CONFIG_FILE,
     initialConfig: {
-      // ...config,
       providers: config.Providers || config.providers,
       HOST: HOST,
       PORT: servicePort,
@@ -94,55 +70,53 @@ async function run(options: RunOptions) {
         "claude-code-router.log"
       ),
     },
-    logger: loggerConfig,
+    logger: false, // Use our custom logger via the output channel
   });
-  // Add async preHandler hook for authentication
+
   server.addHook("preHandler", async (req: any, reply: any) => {
     return new Promise<void>((resolve, reject) => {
-      const done = (err?: Error) => {
+      apiKeyAuth(config)(req, reply, (err?: Error) => {
         if (err) reject(err);
         else resolve();
-      };
-      // Call the async auth function
-      apiKeyAuth(config)(req, reply, done).catch(reject);
+      }).catch(reject);
     });
   });
+
   server.addHook("preHandler", async (req: any, reply: any) => {
     if (req.url.startsWith("/v1/messages")) {
       router(req, reply, config);
     }
   });
+
   server.addHook("onSend", async (req: any, reply: any, payload: any) => {
     if (req.sessionId && req.url.startsWith("/v1/messages")) {
-      if (payload instanceof ReadableStream) {
+      if (payload && typeof payload.tee === 'function') { // Check if it's a ReadableStream
         const [originalStream, clonedStream] = payload.tee();
         const reader1 = clonedStream.getReader();
-        while (true) {
-          const { done, value } = await reader1.read();
-          if (done) break;
-          // Process the value if needed
-          const dataStr = new TextDecoder().decode(value);
-          if (!dataStr.startsWith("event: message_delta")) {
-            continue;
-          }
-          const str = dataStr.slice(27);
-          try {
-            const message = JSON.parse(str);
-            sessionUsageCache.put(req.sessionId, message.usage);
-          } catch {}
-        }
-
+        (async () => {
+            while (true) {
+                const { done, value } = await reader1.read();
+                if (done) break;
+                const dataStr = new TextDecoder().decode(value);
+                if (!dataStr.startsWith("event: message_delta")) continue;
+                const str = dataStr.slice(27);
+                try {
+                    const message = JSON.parse(str);
+                    // @ts-ignore
+                    sessionUsageCache.put(req.sessionId, message.usage);
+                } catch {}
+            }
+        })();
         return originalStream;
-      } else {
+      } else if (payload && payload.usage) {
         // @ts-ignore
         sessionUsageCache.put(req.sessionId, payload.usage);
       }
     }
     return payload;
   });
+
   await server.start();
   outputChannel.appendLine(`🚀 Router server started successfully.`);
   return server;
 }
-
-export { run };

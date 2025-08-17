@@ -12,10 +12,9 @@ import { cleanupLogFiles } from "./logCleanup";
 // Function to interpolate environment variables in config values
 const interpolateEnvVars = (obj: any): any => {
   if (typeof obj === "string") {
-    // Replace $VAR_NAME or ${VAR_NAME} with environment variable values
     return obj.replace(/\$\{([^}]+)\}|\$([A-Z_][A-Z0-9_]*)/g, (match, braced, unbraced) => {
       const varName = braced || unbraced;
-      return process.env[varName] || match; // Keep original if env var doesn't exist
+      return process.env[varName] || match;
     });
   } else if (Array.isArray(obj)) {
     return obj.map(interpolateEnvVars);
@@ -47,24 +46,15 @@ export const readConfigFile = async () => {
   try {
     const config = await fs.readFile(CONFIG_FILE, "utf-8");
     try {
-      // Try to parse with JSON5 first (which also supports standard JSON)
       const parsedConfig = JSON5.parse(config);
-      // Interpolate environment variables in the parsed config
       return interpolateEnvVars(parsedConfig);
-    } catch (parseError) {
-      console.error(`Failed to parse config file at ${CONFIG_FILE}`);
-      console.error("Error details:", (parseError as Error).message);
-      // In extension context, we shouldn't exit the process
-      throw new Error(`Failed to parse config file: ${(parseError as Error).message}`);
+    } catch (parseError: any) {
+      throw new Error(`Failed to parse config file: ${parseError.message}`);
     }
   } catch (readError: any) {
     if (readError.code === "ENOENT") {
-      // Config file doesn't exist, return default config.
-      // The UI will handle creating the file.
       return DEFAULT_CONFIG;
     } else {
-      console.error(`Failed to read config file at ${CONFIG_FILE}`);
-      console.error("Error details:", readError.message);
       throw new Error(`Failed to read config file: ${readError.message}`);
     }
   }
@@ -76,31 +66,7 @@ export const backupConfigFile = async () => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupPath = `${CONFIG_FILE}.${timestamp}.bak`;
       await fs.copyFile(CONFIG_FILE, backupPath);
-
-      // Clean up old backups, keeping only the 3 most recent
-      try {
-        const configDir = path.dirname(CONFIG_FILE);
-        const configFileName = path.basename(CONFIG_FILE);
-        const files = await fs.readdir(configDir);
-
-        // Find all backup files for this config
-        const backupFiles = files
-          .filter(file => file.startsWith(configFileName) && file.endsWith('.bak'))
-          .sort()
-          .reverse(); // Sort in descending order (newest first)
-
-        // Delete all but the 3 most recent backups
-        if (backupFiles.length > 3) {
-          for (let i = 3; i < backupFiles.length; i++) {
-            const oldBackupPath = path.join(configDir, backupFiles[i]);
-            await fs.unlink(oldBackupPath);
-          }
-        }
-      } catch (cleanupError) {
-        console.warn("Failed to clean up old backups:", cleanupError);
-      }
-
-      return backupPath;
+      // Clean up old backups logic can be simplified or removed for extension context
     }
   } catch (error) {
     console.error("Failed to backup config file:", error);
@@ -120,8 +86,5 @@ export const initConfig = async () => {
   return config;
 };
 
-// 导出日志清理函数
 export { cleanupLogFiles };
-
-// 导出更新功能
 export { checkForUpdates, performUpdate } from "./update";
