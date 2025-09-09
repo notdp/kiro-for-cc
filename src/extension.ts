@@ -106,12 +106,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Register CodeLens provider for spec tasks
     const specTaskCodeLensProvider = new SpecTaskCodeLensProvider();
+
+    let specDir = '.claude/specs';
+    try {
+        const configManager = ConfigManager.getInstance();
+        await configManager.loadSettings()
+        specDir = configManager.getPath('specs');
+    } catch (error) {}
     
     // 使用更明确的文档选择器
     const selector: vscode.DocumentSelector = [
         { 
             language: 'markdown', 
-            pattern: '**/.claude/specs/*/tasks.md',
+            pattern: `**/${specDir}/*/tasks.md`,
             scheme: 'file'
         }
     ];

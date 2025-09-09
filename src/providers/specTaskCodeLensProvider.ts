@@ -1,18 +1,23 @@
 import * as vscode from 'vscode';
+import { ConfigManager } from '../utils/configManager';
 
 export class SpecTaskCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
+    private configManager: ConfigManager;
 
     constructor() {
+        this.configManager = ConfigManager.getInstance();
+        this.configManager.loadSettings();
         vscode.workspace.onDidChangeConfiguration((_) => {
             this._onDidChangeCodeLenses.fire();
         });
     }
 
     public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
-        // Pattern is already filtered by registration, but double-check for tasks.md
-        if (!document.fileName.includes('.claude/specs/') || !document.fileName.endsWith('tasks.md')) {
+        // Pattern is already filtered by registration, but double-check for tasks.md  
+        const specDir = this.configManager.getPath('specs');
+        if (!document.fileName.includes(specDir) || !document.fileName.endsWith('tasks.md')) {
             return [];
         }
 
