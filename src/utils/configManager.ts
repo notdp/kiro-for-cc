@@ -79,6 +79,11 @@ export class ConfigManager {
         return path.join(this.workspaceFolder.uri.fsPath, this.getPath(type));
     }
 
+    get<T>(key: string): T | undefined {
+        const config = vscode.workspace.getConfiguration('kfc');
+        return config.get<T>(key);
+    }
+
     getTerminalDelay(): number {
         return ConfigManager.TERMINAL_VENV_ACTIVATION_DELAY;
     }

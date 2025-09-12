@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ClaudeCodeProvider } from '../../providers/claudeCodeProvider';
+import { LLMProvider } from '../../providers/llmProvider';
 import { ConfigManager } from '../../utils/configManager';
 import { NotificationUtils } from '../../utils/notificationUtils';
 import { PromptLoader } from '../../services/promptLoader';
@@ -12,7 +12,7 @@ export class SpecManager {
     private promptLoader: PromptLoader;
 
     constructor(
-        private claudeProvider: ClaudeCodeProvider,
+        private llmProvider: LLMProvider,
         private outputChannel: vscode.OutputChannel
     ) {
         this.configManager = ConfigManager.getInstance();
@@ -54,11 +54,8 @@ export class SpecManager {
             specBasePath: this.getSpecBasePath()
         });
 
-        // Send to Claude and get the terminal
-        const terminal = await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Creating Spec');
-
-        // Set up automatic terminal renaming when spec folder is created
-        this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        // Send to AI provider
+        await this.llmProvider.invokeSplitView(prompt, 'KFC - Creating Spec');
     }
 
     async createWithAgents() {
@@ -90,11 +87,8 @@ export class SpecManager {
             specBasePath: this.getSpecBasePath()
         });
 
-        // Send to Claude and get the terminal
-        const terminal = await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Creating Spec (Agents)');
-
-        // Set up automatic terminal renaming when spec folder is created
-        this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        // Send to AI provider
+        await this.llmProvider.invokeSplitView(prompt, 'KFC - Creating Spec (Agents)');
     }
 
     async implTask(taskFilePath: string, taskDescription: string) {
@@ -112,70 +106,7 @@ export class SpecManager {
             taskDescription
         });
 
-        await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Implementing Task');
-    }
-
-    /**
-     * Set up a file system watcher to automatically rename the terminal 
-     * when a new spec folder is created
-     */
-    private async setupSpecFolderWatcher(workspaceFolder: vscode.WorkspaceFolder, terminal: vscode.Terminal): Promise<void> {
-        // Create watcher for new folders in the specs directory
-        const watcher = vscode.workspace.createFileSystemWatcher(
-            new vscode.RelativePattern(workspaceFolder, `${this.getSpecBasePath()}/*`),
-            false, // Watch for creates
-            true,  // Ignore changes
-            true   // Ignore deletes
-        );
-
-        let disposed = false;
-
-        // Handle folder creation
-        const disposable = watcher.onDidCreate(async (uri) => {
-            if (disposed) return;
-
-            // Validate it's a directory
-            try {
-                const stats = await vscode.workspace.fs.stat(uri);
-                if (stats.type !== vscode.FileType.Directory) {
-                    this.outputChannel.appendLine(`[SpecManager] Skipping non-directory: ${uri.fsPath}`);
-                    return;
-                }
-            } catch (error) {
-                this.outputChannel.appendLine(`[SpecManager] Error checking path: ${error}`);
-                return;
-            }
-
-            const specName = path.basename(uri.fsPath);
-            this.outputChannel.appendLine(`[SpecManager] New spec detected: ${specName}`);
-            try {
-                await this.claudeProvider.renameTerminal(terminal, `Spec: ${specName}`);
-            } catch (error) {
-                this.outputChannel.appendLine(`[SpecManager] Failed to rename terminal: ${error}`);
-            }
-
-            // Clean up after successful rename
-            this.disposeWatcher(disposable, watcher);
-            disposed = true;
-        });
-
-        // Auto-cleanup after timeout
-        setTimeout(() => {
-            if (!disposed) {
-                this.outputChannel.appendLine(`[SpecManager] Watcher timeout - cleaning up`);
-                this.disposeWatcher(disposable, watcher);
-                disposed = true;
-            }
-        }, 60000); // 60 seconds timeout
-    }
-
-    /**
-     * Dispose watcher and its event handler
-     */
-    private disposeWatcher(disposable: vscode.Disposable, watcher: vscode.FileSystemWatcher): void {
-        disposable.dispose();
-        watcher.dispose();
-        this.outputChannel.appendLine(`[SpecManager] Watcher disposed`);
+        await this.llmProvider.invokeSplitView(prompt, 'KFC - Implementing Task');
     }
 
     async navigateToDocument(specName: string, type: SpecDocumentType) {

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ClaudeCodeProvider } from '../../providers/claudeCodeProvider';
+import { LLMProvider } from '../../providers/llmProvider';
 import { ConfigManager } from '../../utils/configManager';
 import { NotificationUtils } from '../../utils/notificationUtils';
 import { PromptLoader } from '../../services/promptLoader';
@@ -10,7 +10,7 @@ export class SteeringManager {
     private promptLoader: PromptLoader;
 
     constructor(
-        private claudeCodeProvider: ClaudeCodeProvider,
+        private llmProvider: LLMProvider,
         private outputChannel: vscode.OutputChannel
     ) {
         this.configManager = ConfigManager.getInstance();
@@ -54,7 +54,7 @@ export class SteeringManager {
                 steeringPath: this.getSteeringBasePath()
             });
 
-            await this.claudeCodeProvider.invokeClaudeSplitView(prompt, 'KFC - Create Steering');
+            await this.llmProvider.invokeSplitView(prompt, 'KFC - Create Steering');
 
             // Show auto-dismiss notification
             await NotificationUtils.showAutoDismissNotification('Claude is creating a steering document based on your needs. Check the terminal for progress.');
@@ -80,8 +80,8 @@ export class SteeringManager {
             // Show progress notification
             await NotificationUtils.showAutoDismissNotification(`Deleting "${documentName}" and updating CLAUDE.md...`);
 
-            // Execute Claude command to update CLAUDE.md
-            const result = await this.claudeCodeProvider.invokeClaudeHeadless(prompt);
+            // Execute AI provider command to update CLAUDE.md
+            const result = await this.llmProvider.invokeHeadless(prompt);
 
             if (result.exitCode === 0) {
                 await NotificationUtils.showAutoDismissNotification(`Steering document "${documentName}" deleted and CLAUDE.md updated successfully.`);
@@ -138,7 +138,7 @@ export class SteeringManager {
                 steeringPath: this.getSteeringBasePath()
             });
 
-            await this.claudeCodeProvider.invokeClaudeSplitView(prompt, 'KFC - Init Steering');
+            await this.llmProvider.invokeSplitView(prompt, 'KFC - Init Steering');
 
             // Auto-dismiss notification after 3 seconds
             await NotificationUtils.showAutoDismissNotification('Steering documents generation started. Check the terminal for progress.');
@@ -151,8 +151,8 @@ export class SteeringManager {
             filePath: uri.fsPath
         });
 
-        // Send to Claude
-        await this.claudeCodeProvider.invokeClaudeSplitView(prompt, 'KFC - Refine Steering');
+        // Send to AI provider
+        await this.llmProvider.invokeSplitView(prompt, 'KFC - Refine Steering');
 
         // Show auto-dismiss notification
         await NotificationUtils.showAutoDismissNotification('Claude is refining the steering document. Check the terminal for progress.');

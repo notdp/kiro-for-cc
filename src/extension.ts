@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { ClaudeCodeProvider } from './providers/claudeCodeProvider';
+import { createLLMProvider } from './providers/providerFactory';
+import { LLMProvider } from './providers/llmProvider';
 import { SpecManager } from './features/spec/specManager';
 import { SteeringManager } from './features/steering/steeringManager';
 import { SpecExplorerProvider } from './providers/specExplorerProvider';
@@ -17,7 +18,7 @@ import { PermissionManager } from './features/permission/permissionManager';
 import { NotificationUtils } from './utils/notificationUtils';
 import { SpecTaskCodeLensProvider } from './providers/specTaskCodeLensProvider';
 
-let claudeCodeProvider: ClaudeCodeProvider;
+let llmProvider: LLMProvider;
 let specManager: SpecManager;
 let steeringManager: SteeringManager;
 let permissionManager: PermissionManager;
@@ -50,18 +51,23 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
 
-    // Initialize Claude Code SDK provider with output channel
-    claudeCodeProvider = new ClaudeCodeProvider(context, outputChannel);
+    // Initialize LLM provider
+    llmProvider = createLLMProvider(context, outputChannel);
 
     // 创建并初始化 PermissionManager
     permissionManager = new PermissionManager(context, outputChannel);
 
     // 初始化权限系统（包含重试逻辑）
-    await permissionManager.initializePermissions();
+    // TODO: This is Claude-specific. We need to abstract this.
+    // For now, we only initialize permissions if the provider is Claude.
+    const configManager = ConfigManager.getInstance();
+    if (configManager.get('ai.provider') === 'Claude') {
+        await permissionManager.initializePermissions();
+    }
 
     // Initialize feature managers with output channel
-    specManager = new SpecManager(claudeCodeProvider, outputChannel);
-    steeringManager = new SteeringManager(claudeCodeProvider, outputChannel);
+    specManager = new SpecManager(llmProvider, outputChannel);
+    steeringManager = new SteeringManager(llmProvider, outputChannel);
 
     // Initialize Agent Manager and agents
     agentManager = new AgentManager(context, outputChannel);

@@ -1,8 +1,8 @@
 {
-  "name": "kiro-for-cc",
-  "displayName": "Kiro for Claude Code",
-  "description": "Spec-driven development with Claude Code - inspired by Kiro",
-  "version": "0.2.8",
+  "name": "kiro-for-ai",
+  "displayName": "Kiro for AI",
+  "description": "Spec-driven development with AI - inspired by Kiro",
+  "version": "0.4.0-codex",
   "publisher": "heisebaiyun",
   "icon": "icon.png",
   "repository": {
@@ -299,12 +299,42 @@
       ]
     },
     "configuration": {
-      "title": "Kiro for Claude Code",
+      "title": "Kiro for AI",
       "properties": {
-        "kfc.claudePath": {
+        "kfc.ai.provider": {
+          "type": "string",
+          "enum": [
+            "Claude",
+            "Gemini",
+            "Codex"
+          ],
+          "default": "Claude",
+          "description": "Select the AI provider to use"
+        },
+        "kfc.claude.cliPath": {
           "type": "string",
           "default": "claude",
           "description": "Path to Claude Code CLI executable"
+        },
+        "kfc.gemini.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for Google Gemini"
+        },
+        "kfc.gemini.model": {
+          "type": "string",
+          "default": "gemini-pro",
+          "description": "Gemini model to use"
+        },
+        "kfc.codex.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for OpenAI Codex"
+        },
+        "kfc.codex.model": {
+          "type": "string",
+          "default": "text-davinci-002",
+          "description": "Codex model to use"
         },
         "kfc.autoRefreshSpecs": {
           "type": "boolean",
@@ -363,9 +393,11 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.8",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "openai": "^5.20.1"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
