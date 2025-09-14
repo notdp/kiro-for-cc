@@ -2,7 +2,7 @@
   "name": "kiro-for-ai",
   "displayName": "Kiro for AI",
   "description": "Spec-driven development with AI - inspired by Kiro",
-  "version": "0.4.0-codex",
+  "version": "0.5.0-refactor",
   "publisher": "heisebaiyun",
   "icon": "icon.png",
   "repository": {
@@ -67,10 +67,6 @@
       ]
     },
     "viewsWelcome": [
-      {
-        "view": "kfc.views.overview",
-        "contents": "Configure Kiro for Claude Code\n\n[$(gear) Open Settings](command:kfc.settings.open)\n[$(question) Help](command:kfc.help.open)"
-      },
       {
         "view": "kfc.views.specExplorer",
         "contents": "Build complex features with structured planning\n\n[$(plus) Create New Spec](command:kfc.spec.create)\n\n[$(sparkle) Create New Spec With Agents](command:kfc.spec.createWithAgents)"
@@ -311,10 +307,17 @@
           "default": "Claude",
           "description": "Select the AI provider to use"
         },
-        "kfc.claude.cliPath": {
-          "type": "string",
-          "default": "claude",
-          "description": "Path to Claude Code CLI executable"
+        "kfc.claude.cli": {
+          "type": "object",
+          "default": {
+            "path": "claude",
+            "commands": {
+              "splitView": "--permission-mode bypassPermissions \"$(cat {{promptFile}})\"",
+              "headless": "--permission-mode bypassPermissions \"$(cat {{promptFile}})\"",
+              "permission": "--permission-mode bypassPermissions"
+            }
+          },
+          "description": "Configuration for the Claude CLI"
         },
         "kfc.gemini.apiKey": {
           "type": "string",

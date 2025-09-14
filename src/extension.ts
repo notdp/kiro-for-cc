@@ -85,6 +85,15 @@ export async function activate(context: vscode.ExtensionContext) {
     specExplorer.setSpecManager(specManager);
     steeringExplorer.setSteeringManager(steeringManager);
 
+    // Add a listener to refresh the overview when the configuration changes
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration(`${VSC_CONFIG_NAMESPACE}.ai.provider`)) {
+                overviewProvider.refresh();
+            }
+        })
+    );
+
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('kfc.views.overview', overviewProvider),
         vscode.window.registerTreeDataProvider('kfc.views.specExplorer', specExplorer),
@@ -98,7 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const updateChecker = new UpdateChecker(context, outputChannel);
 
     // Register commands
-    registerCommands(context, specExplorer, steeringExplorer, hooksExplorer, mcpExplorer, agentsExplorer, updateChecker);
+    registerCommands(context, specExplorer, steeringExplorer, hooksExplorer, mcpExplorer, agentsExplorer, updateChecker, overviewProvider);
 
     // Initialize default settings file if not exists
     await initializeDefaultSettings();
@@ -222,7 +231,24 @@ async function toggleViews() {
 }
 
 
-function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecExplorerProvider, steeringExplorer: SteeringExplorerProvider, hooksExplorer: HooksExplorerProvider, mcpExplorer: MCPExplorerProvider, agentsExplorer: AgentsExplorerProvider, updateChecker: UpdateChecker) {
+function registerCommands(context: vscode.ExtensionContext, specExplorer: SpecExplorerProvider, steeringExplorer: SteeringExplorerProvider, hooksExplorer: HooksExplorerProvider, mcpExplorer: MCPExplorerProvider, agentsExplorer: AgentsExplorerProvider, updateChecker: UpdateChecker, overviewProvider: OverviewProvider) {
+
+    // AI provider command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('kfc.ai.selectProvider', async () => {
+            const providers = ['Claude', 'Gemini', 'Codex'];
+            const selectedProvider = await vscode.window.showQuickPick(providers, {
+                placeHolder: 'Select the AI provider to use'
+            });
+
+            if (selectedProvider) {
+                const config = vscode.workspace.getConfiguration(VSC_CONFIG_NAMESPACE);
+                await config.update('ai.provider', selectedProvider, vscode.ConfigurationTarget.Global);
+                vscode.window.showInformationMessage(`AI provider changed to ${selectedProvider}. Please reload the window for the change to take full effect.`);
+                overviewProvider.refresh();
+            }
+        })
+    );
 
     // Permission commands
     context.subscriptions.push(

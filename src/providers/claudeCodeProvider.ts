@@ -25,6 +25,31 @@ export class ClaudeCodeProvider implements LLMProvider {
         });
     }
 
+    private getCliCommand(commandType: 'splitView' | 'headless' | 'permission', promptFile?: string): string {
+        const cliConfig = this.configManager.get<any>('claude.cli');
+        const cliPath = cliConfig?.path || 'claude';
+        let commandTemplate = cliConfig?.commands?.[commandType];
+
+        if (!commandTemplate) {
+            // Fallback for safety, though the default config should always have this.
+            this.outputChannel.appendLine(`[ClaudeCodeProvider] Warning: No command template found for '${commandType}'. Using default.`);
+            switch (commandType) {
+                case 'permission':
+                    commandTemplate = '--permission-mode bypassPermissions';
+                    break;
+                default:
+                    commandTemplate = '--permission-mode bypassPermissions "$(cat {{promptFile}})"';
+                    break;
+            }
+        }
+
+        let command = `${cliPath} ${commandTemplate}`;
+        if (promptFile) {
+            command = command.replace(/{{promptFile}}/g, promptFile);
+        }
+        return command;
+    }
+
     /**
      * Create a temporary file with content
      */
@@ -78,9 +103,7 @@ export class ClaudeCodeProvider implements LLMProvider {
             // Create temp file with the prompt
             const promptFilePath = await this.createTempFile(prompt, 'prompt');
 
-            const claudePath = this.configManager.get('claude.cliPath');
-            // Build the command - use command substitution instead of input redirection
-            let command = `${claudePath} --permission-mode bypassPermissions "$(cat "${promptFilePath}")"`;
+            const command = this.getCliCommand('splitView', promptFilePath);
 
             // Create a new terminal in the editor area (right side)
             const terminal = vscode.window.createTerminal({
@@ -233,9 +256,7 @@ export class ClaudeCodeProvider implements LLMProvider {
         // Create temp file with the prompt
         const promptFilePath = await this.createTempFile(prompt, 'background-prompt');
 
-        const claudePath = this.configManager.get('claude.cliPath');
-        // Build command using command substitution instead of file redirection
-        let commandLine = `${claudePath} --permission-mode bypassPermissions "$(cat "${promptFilePath}")"`;
+        const commandLine = this.getCliCommand('headless', promptFilePath);
 
         // Create hidden terminal for background execution
         const terminal = vscode.window.createTerminal({
@@ -312,7 +333,16 @@ export class ClaudeCodeProvider implements LLMProvider {
      */
     static createPermissionTerminal(): vscode.Terminal {
         const configManager = ConfigManager.getInstance();
-        const claudePath = configManager.get('claude.cliPath');
+        const cliConfig = configManager.get<any>('claude.cli');
+        const cliPath = cliConfig?.path || 'claude';
+        let commandTemplate = cliConfig?.commands?.permission;
+
+        if (!commandTemplate) {
+            commandTemplate = '--permission-mode bypassPermissions';
+        }
+
+        const command = `${cliPath} ${commandTemplate}`;
+
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         const terminal = vscode.window.createTerminal({
             name: 'Claude Code - Permission Setup',
@@ -321,10 +351,7 @@ export class ClaudeCodeProvider implements LLMProvider {
         });
 
         terminal.show();
-        terminal.sendText(
-            `${claudePath} --permission-mode bypassPermissions`,
-            true
-        );
+        terminal.sendText(command, true);
 
         return terminal;
     }
