@@ -1,10 +1,13 @@
 // Auto-generated index file
-// Re-export all prompt modules
+// DO NOT EDIT MANUALLY
 
-export { default as createSpec } from './spec/create-spec';
-export { default as createSpecWithAgents } from './spec/create-spec-with-agents';
-export { default as createCustomSteering } from './steering/create-custom-steering';
-export { default as deleteSteering } from './steering/delete-steering';
-export { default as initSteering } from './steering/init-steering';
-export { default as refineSteering } from './steering/refine-steering';
-export { default as implTask } from './spec/impl-task';
+export { default as createspecwithagents } from './spec/create-spec-with-agents';
+export { default as createspec } from './spec/create-spec';
+export { default as impltask } from './spec/impl-task';
+export { default as createcustomsteering } from './steering/create-custom-steering';
+export { default as deletesteering } from './steering/delete-steering';
+export { default as initsteering } from './steering/init-steering';
+export { default as refinesteering } from './steering/refine-steering';
+
+export * as spec from './spec';
+export * as steering from './steering';
