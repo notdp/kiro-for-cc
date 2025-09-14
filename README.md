@@ -4,6 +4,7 @@
 [![Downloads](https://img.shields.io/vscode-marketplace/d/heisebaiyun.kiro-for-cc.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=heisebaiyun.kiro-for-cc)
 [![GitHub stars](https://img.shields.io/github/stars/notdp/kiro-for-cc.svg?style=flat-square)](https://github.com/notdp/kiro-for-cc/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/notdp/kiro-for-cc.svg?style=flat-square)](https://github.com/notdp/kiro-for-cc/issues)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Nurdich/kiro-for-cc/build.yml?branch=main&style=flat-square)](https://github.com/Nurdich/kiro-for-cc/actions/workflows/build.yml)
 
 [中文版](./README.zh-CN.md)
 
