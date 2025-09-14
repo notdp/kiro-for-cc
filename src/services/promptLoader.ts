@@ -39,13 +39,23 @@ export class PromptLoader {
     this.prompts.clear();
     this.compiledTemplates.clear();
 
-    // Load all prompts
-    const promptModules = Object.values(prompts);
+    // Load all prompts - handle nested structure
+    this.loadPromptsFromModule(prompts as any);
+  }
 
-    // Register each prompt
-    for (const module of promptModules) {
-      if (module.frontmatter && module.content) {
-        this.registerPrompt(module as PromptTemplate);
+  /**
+   * Recursively load prompts from a module
+   */
+  private loadPromptsFromModule(module: any): void {
+    for (const [key, value] of Object.entries(module)) {
+      if (value && typeof value === 'object') {
+        // Check if this is a prompt template (has frontmatter and content)
+        if ('frontmatter' in value && 'content' in value) {
+          this.registerPrompt(value as PromptTemplate);
+        } else {
+          // Recursively check nested modules
+          this.loadPromptsFromModule(value);
+        }
       }
     }
   }
