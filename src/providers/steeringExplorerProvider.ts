@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SteeringManager } from '../features/steering/steeringManager';
+import { getLLMProvider } from '../extension';
+import { LLMProvider } from './llmProvider';
 
 export class SteeringExplorerProvider implements vscode.TreeDataProvider<SteeringItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<SteeringItem | undefined | null | void> = new vscode.EventEmitter<SteeringItem | undefined | null | void>();
@@ -9,6 +11,7 @@ export class SteeringExplorerProvider implements vscode.TreeDataProvider<Steerin
 
     private steeringManager!: SteeringManager;
     private isLoading: boolean = false;
+    private llmProvider: LLMProvider | undefined;
 
     constructor(private context: vscode.ExtensionContext) {
         // We'll set the steering manager later from extension.ts
@@ -22,8 +25,9 @@ export class SteeringExplorerProvider implements vscode.TreeDataProvider<Steerin
         this.isLoading = true;
         this._onDidChangeTreeData.fire(); // Show loading state immediately
         
-        // Simulate async loading
+        // Use a small timeout to allow the UI to update to the loading state
         setTimeout(() => {
+            this.llmProvider = getLLMProvider();
             this.isLoading = false;
             this._onDidChangeTreeData.fire(); // Show actual content
         }, 100);
@@ -34,46 +38,47 @@ export class SteeringExplorerProvider implements vscode.TreeDataProvider<Steerin
     }
 
     async getChildren(element?: SteeringItem): Promise<SteeringItem[]> {
+        this.llmProvider = getLLMProvider();
+        if (!this.llmProvider) {
+            // Provider not ready yet, show loading or empty
+            return [new SteeringItem('Initializing provider...', vscode.TreeItemCollapsibleState.None, 'steering-loading', '', this.context)];
+        }
+        const steeringFilename = this.llmProvider.getSteeringFilename();
+
         if (!element) {
-            // Root level - show loading state or CLAUDE.md files
+            // Root level
             const items: SteeringItem[] = [];
 
             if (this.isLoading) {
-                // Show loading state
-                items.push(new SteeringItem(
-                    'Loading steering documents...',
-                    vscode.TreeItemCollapsibleState.None,
-                    'steering-loading',
-                    '',  // resourcePath
-                    this.context
-                ));
-                return items;
+                return [new SteeringItem('Loading steering documents...', vscode.TreeItemCollapsibleState.None, 'steering-loading', '', this.context)];
             }
 
-            // Check existence of files
-            const globalClaudeMd = path.join(process.env.HOME || '', '.claude', 'CLAUDE.md');
-            const globalExists = fs.existsSync(globalClaudeMd);
+            // Check existence of steering files
+            const globalSteeringFile = path.join(process.env.HOME || '', '.claude', steeringFilename);
+            const globalExists = fs.existsSync(globalSteeringFile);
 
-            let projectClaudeMd = '';
+            let projectSteeringFile = '';
             let projectExists = false;
             if (vscode.workspace.workspaceFolders) {
-                projectClaudeMd = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CLAUDE.md');
-                projectExists = fs.existsSync(projectClaudeMd);
+                projectSteeringFile = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, steeringFilename);
+                projectExists = fs.existsSync(projectSteeringFile);
             }
 
-            // Always show Global Rule and Project Rule (if they exist)
+            // Add Global and Project Rules if they exist
             if (globalExists) {
                 items.push(new SteeringItem(
                     'Global Rule',
                     vscode.TreeItemCollapsibleState.None,
-                    'claude-md-global',
-                    globalClaudeMd,
+                    'steering-file-global',
+                    globalSteeringFile,
                     this.context,
                     {
                         command: 'vscode.open',
-                        title: 'Open Global CLAUDE.md',
-                        arguments: [vscode.Uri.file(globalClaudeMd)]
-                    }
+                        title: `Open Global ${steeringFilename}`,
+                        arguments: [vscode.Uri.file(globalSteeringFile)]
+                    },
+                    undefined,
+                    steeringFilename
                 ));
             }
 
@@ -81,44 +86,41 @@ export class SteeringExplorerProvider implements vscode.TreeDataProvider<Steerin
                 items.push(new SteeringItem(
                     'Project Rule',
                     vscode.TreeItemCollapsibleState.None,
-                    'claude-md-project',
-                    projectClaudeMd,
+                    'steering-file-project',
+                    projectSteeringFile,
                     this.context,
                     {
                         command: 'vscode.open',
-                        title: 'Open Project CLAUDE.md',
-                        arguments: [vscode.Uri.file(projectClaudeMd)]
-                    }
+                        title: `Open Project ${steeringFilename}`,
+                        arguments: [vscode.Uri.file(projectSteeringFile)]
+                    },
+                    undefined,
+                    steeringFilename
                 ));
             }
 
-            // Traditional steering documents - add them directly at root level if they exist
+            // Add traditional steering documents
             if (vscode.workspace.workspaceFolders && this.steeringManager) {
                 const steeringDocs = await this.steeringManager.getSteeringDocuments();
                 if (steeringDocs.length > 0) {
-                    // Add a collapsible header item for steering documents
-                    items.push(new SteeringItem(
-                        'Steering Docs',
-                        vscode.TreeItemCollapsibleState.Expanded, // Make it expandable
-                        'steering-header',
-                        '',
-                        this.context
-                    ));
+                    items.push(new SteeringItem('Steering Docs', vscode.TreeItemCollapsibleState.Expanded, 'steering-header', '', this.context));
                 }
             }
 
-            // Add create buttons at the bottom for missing files
+            // Add create buttons for missing files
             if (!globalExists) {
                 items.push(new SteeringItem(
                     'Create Global Rule',
                     vscode.TreeItemCollapsibleState.None,
-                    'create-global-claude',
+                    'create-steering-file-global',
                     '',
                     this.context,
                     {
                         command: 'kfc.steering.createUserRule',
-                        title: 'Create Global CLAUDE.md'
-                    }
+                        title: `Create Global ${steeringFilename}`
+                    },
+                    undefined,
+                    steeringFilename
                 ));
             }
 
@@ -126,27 +128,27 @@ export class SteeringExplorerProvider implements vscode.TreeDataProvider<Steerin
                 items.push(new SteeringItem(
                     'Create Project Rule',
                     vscode.TreeItemCollapsibleState.None,
-                    'create-project-claude',
+                    'create-steering-file-project',
                     '',
                     this.context,
                     {
                         command: 'kfc.steering.createProjectRule',
-                        title: 'Create Project CLAUDE.md'
-                    }
+                        title: `Create Project ${steeringFilename}`
+                    },
+                    undefined,
+                    steeringFilename
                 ));
             }
 
             return items;
         } else if (element.contextValue === 'steering-header') {
-            // Return steering documents as children of the header
+            // Children of "Steering Docs"
             const items: SteeringItem[] = [];
-
             if (vscode.workspace.workspaceFolders && this.steeringManager) {
                 const steeringDocs = await this.steeringManager.getSteeringDocuments();
                 const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
                 for (const doc of steeringDocs) {
-                    // Calculate relative path from workspace root
                     const relativePath = path.relative(workspacePath, doc.path);
                     items.push(new SteeringItem(
                         doc.name,
@@ -159,11 +161,10 @@ export class SteeringExplorerProvider implements vscode.TreeDataProvider<Steerin
                             title: 'Open Steering Document',
                             arguments: [vscode.Uri.file(doc.path)]
                         },
-                        relativePath // Pass relative path without prefix
+                        relativePath
                     ));
                 }
             }
-
             return items;
         }
 
@@ -179,54 +180,36 @@ class SteeringItem extends vscode.TreeItem {
         public readonly resourcePath: string,
         private readonly context: vscode.ExtensionContext,
         public readonly command?: vscode.Command,
-        private readonly filename?: string
+        private readonly filename?: string, // for steering-document description
+        private readonly steeringFilename?: string // for dynamic labels
     ) {
         super(label, collapsibleState);
 
-        // Set appropriate icons based on type
+        // Set icons and tooltips based on type
         if (contextValue === 'steering-loading') {
             this.iconPath = new vscode.ThemeIcon('sync~spin');
-            this.tooltip = 'Loading steering documents...';
-        } else if (contextValue === 'claude-md-global') {
+            this.tooltip = 'Loading...';
+        } else if (contextValue === 'steering-file-global') {
             this.iconPath = new vscode.ThemeIcon('globe');
-            this.tooltip = `Global CLAUDE.md: ${resourcePath}`;
-            this.description = '~/.claude/CLAUDE.md';
-        } else if (contextValue === 'claude-md-project') {
+            this.tooltip = `Global Steering File: ${resourcePath}`;
+            this.description = `~/.claude/${this.steeringFilename}`;
+        } else if (contextValue === 'steering-file-project') {
             this.iconPath = new vscode.ThemeIcon('root-folder');
-            this.tooltip = `Project CLAUDE.md: ${resourcePath}`;
-            this.description = 'CLAUDE.md';
-        } else if (contextValue === 'create-global-claude') {
+            this.tooltip = `Project Steering File: ${resourcePath}`;
+            this.description = this.steeringFilename;
+        } else if (contextValue === 'create-steering-file-global') {
             this.iconPath = new vscode.ThemeIcon('globe');
-            this.tooltip = 'Click to create Global CLAUDE.md';
-        } else if (contextValue === 'create-project-claude') {
+            this.tooltip = `Click to create Global ${this.steeringFilename}`;
+        } else if (contextValue === 'create-steering-file-project') {
             this.iconPath = new vscode.ThemeIcon('root-folder');
-            this.tooltip = 'Click to create Project CLAUDE.md';
-        } else if (contextValue === 'separator') {
-            this.iconPath = undefined;
-            this.description = undefined;
+            this.tooltip = `Click to create Project ${this.steeringFilename}`;
         } else if (contextValue === 'steering-header') {
-            this.iconPath = new vscode.ThemeIcon('folder-library');
-            this.description = undefined;
-            // Make it visually distinct but not clickable
+            this.iconPath = new vscode.ThemeIcon('folder--library');
             this.tooltip = 'Generated project steering documents';
         } else if (contextValue === 'steering-document') {
-            // Different icons for different steering documents
-            if (label === 'product') {
-                this.iconPath = new vscode.ThemeIcon('lightbulb-empty');
-            } else if (label === 'tech') {
-                this.iconPath = new vscode.ThemeIcon('circuit-board');
-            } else if (label === 'structure') {
-                this.iconPath = new vscode.ThemeIcon('list-tree');
-            } else {
-                this.iconPath = new vscode.ThemeIcon('file');
-            }
+            this.iconPath = new vscode.ThemeIcon('file');
             this.tooltip = `Steering document: ${resourcePath}`;
-            this.description = filename; // Show the relative path
+            this.description = filename;
         }
-
-        // Don't set resourceUri to avoid showing diagnostic counts
-        // if (resourcePath) {
-        //     this.resourceUri = vscode.Uri.file(resourcePath);
-        // }
     }
 }

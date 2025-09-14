@@ -25,6 +25,10 @@ export class ClaudeCodeProvider implements LLMProvider {
         });
     }
 
+    getSteeringFilename(): string {
+        return 'CLAUDE.md';
+    }
+
     private getCliCommand(commandType: 'splitView' | 'headless' | 'permission', promptFile?: string): string {
         const cliConfig = this.configManager.get<any>('claude.cli');
         const cliPath = cliConfig?.path || 'claude';

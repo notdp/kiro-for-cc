@@ -17,6 +17,10 @@ export class GeminiCodeProvider implements LLMProvider {
         this.genAI = new GoogleGenerativeAI(apiKey);
     }
 
+    getSteeringFilename(): string {
+        return 'AGENTS.md';
+    }
+
     async invokeSplitView(prompt: string, title: string): Promise<void> {
         this.outputChannel.appendLine(`[GeminiCodeProvider] Invoking Gemini in split view`);
         this.outputChannel.appendLine(`========================================`);

@@ -30,6 +30,10 @@ export function getPermissionManager(): PermissionManager {
     return permissionManager;
 }
 
+export function getLLMProvider(): LLMProvider {
+    return llmProvider;
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     // Create output channel for debugging
     outputChannel = vscode.window.createOutputChannel('Kiro for Claude Code - Debug');

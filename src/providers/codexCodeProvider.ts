@@ -17,6 +17,10 @@ export class CodexCodeProvider implements LLMProvider {
         this.openai = new OpenAI({ apiKey });
     }
 
+    getSteeringFilename(): string {
+        return 'AGENTS.md';
+    }
+
     async invokeSplitView(prompt: string, title: string): Promise<void> {
         this.outputChannel.appendLine(`[CodexCodeProvider] Invoking Codex in split view`);
         this.outputChannel.appendLine(`========================================`);
