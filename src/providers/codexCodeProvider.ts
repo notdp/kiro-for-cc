@@ -1,24 +1,36 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as child_process from 'child_process';
 import { LLMProvider } from './llmProvider';
 import { ConfigManager } from '../utils/configManager';
-import OpenAI from 'openai';
 
 export class CodexCodeProvider implements LLMProvider {
     private configManager: ConfigManager;
-    private openai: OpenAI;
 
-    constructor(private outputChannel: vscode.OutputChannel) {
+    constructor(private context: vscode.ExtensionContext, private outputChannel: vscode.OutputChannel) {
         this.configManager = ConfigManager.getInstance();
-        const apiKey = this.configManager.get<string>('codex.apiKey');
-        if (!apiKey) {
-            vscode.window.showErrorMessage('Codex API key not configured. Please set it in the settings.');
-            throw new Error('Codex API key not configured.');
-        }
-        this.openai = new OpenAI({ apiKey });
     }
 
     getSteeringFilename(): string {
         return 'AGENTS.md';
+    }
+
+    private async createTempFile(content: string, prefix: string = 'prompt'): Promise<string> {
+        const tempDir = this.context.globalStorageUri.fsPath;
+        await vscode.workspace.fs.createDirectory(this.context.globalStorageUri);
+        const tempFile = path.join(tempDir, `${prefix}-${Date.now()}.md`);
+        await fs.promises.writeFile(tempFile, content);
+        return this.convertPathIfWSL(tempFile);
+    }
+
+    private convertPathIfWSL(filePath: string): string {
+        if (process.platform === 'win32' && filePath.match(/^[A-Za-z]:\\/)) {
+            let wslPath = filePath.replace(/\\/g, '/');
+            wslPath = wslPath.replace(/^([A-Za-z]):/, (_match, drive) => `/mnt/${drive.toLowerCase()}`);
+            return wslPath;
+        }
+        return filePath;
     }
 
     async invokeSplitView(prompt: string, title: string): Promise<void> {
@@ -27,26 +39,31 @@ export class CodexCodeProvider implements LLMProvider {
         this.outputChannel.appendLine(prompt);
         this.outputChannel.appendLine(`========================================`);
 
-        const model = this.configManager.get<string>('codex.model') || 'text-davinci-002';
+        const modelName = this.configManager.get<string>('codex.model') || 'text-davinci-002';
+        const promptFilePath = await this.createTempFile(prompt, 'codex-prompt');
 
-        try {
-            const completion = await this.openai.completions.create({
-                model,
-                prompt,
-                max_tokens: 2048,
-            });
-            const text = completion.choices[0].text;
+        const command = `codex exec "$(cat '${promptFilePath}')" -m "${modelName}"`;
 
-            const doc = await vscode.workspace.openTextDocument({
-                content: text,
-                language: 'markdown'
-            });
-            await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
-        } catch (error) {
-            this.outputChannel.appendLine(`[CodexCodeProvider] Error: ${error}`);
-            vscode.window.showErrorMessage(`Failed to invoke Codex: ${error}`);
-            throw error;
-        }
+        const terminal = vscode.window.createTerminal({
+            name: title,
+            cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+            location: {
+                viewColumn: vscode.ViewColumn.Two
+            }
+        });
+        terminal.show();
+
+        setTimeout(() => {
+            terminal.sendText(command, true);
+        }, 500);
+
+        setTimeout(async () => {
+            try {
+                await fs.promises.unlink(promptFilePath);
+            } catch (e) {
+                // Ignore cleanup errors
+            }
+        }, 30000);
     }
 
     async invokeHeadless(prompt: string): Promise<{ exitCode: number | undefined; output?: string }> {
@@ -55,19 +72,25 @@ export class CodexCodeProvider implements LLMProvider {
         this.outputChannel.appendLine(prompt);
         this.outputChannel.appendLine(`========================================`);
 
-        const model = this.configManager.get<string>('codex.model') || 'text-davinci-002';
+        const modelName = this.configManager.get<string>('codex.model') || 'text-davinci-002';
+        const promptFilePath = await this.createTempFile(prompt, 'codex-headless-prompt');
+        const command = `codex exec "$(cat '${promptFilePath}')" -m "${modelName}"`;
 
-        try {
-            const completion = await this.openai.completions.create({
-                model,
-                prompt,
-                max_tokens: 2048,
+        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+        return new Promise((resolve) => {
+            child_process.exec(command, { cwd }, (error, stdout, stderr) => {
+                fs.promises.unlink(promptFilePath).catch(() => {});
+
+                if (error) {
+                    this.outputChannel.appendLine(`[CodexCodeProvider] Headless exec error: ${error.message}`);
+                    this.outputChannel.appendLine(`[CodexCodeProvider] Stderr: ${stderr}`);
+                    resolve({ exitCode: error.code, output: stderr });
+                } else {
+                    this.outputChannel.appendLine(`[CodexCodeProvider] Headless exec success.`);
+                    resolve({ exitCode: 0, output: stdout });
+                }
             });
-            const text = completion.choices[0].text;
-            return { exitCode: 0, output: text };
-        } catch (error) {
-            this.outputChannel.appendLine(`[CodexCodeProvider] Error: ${error}`);
-            return { exitCode: 1, output: `${error}` };
-        }
+        });
     }
 }

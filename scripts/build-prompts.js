@@ -63,68 +63,6 @@ export default {
   console.log(`Generated: ${path.relative(process.cwd(), tsPath)}`);
 }
 
-// 生成索引文件
-function generateIndexFile(outputDir, mdFiles, promptsDir) {
-  const exports = [];
-  const subdirs = new Set();
-  
-  mdFiles.forEach(mdFile => {
-    const relativePath = path.relative(promptsDir, mdFile);
-    const importPath = './' + relativePath.replace(/\.md$/, '').replace(/\\/g, '/');
-    const exportName = path.basename(mdFile, '.md').replace(/[^a-zA-Z0-9]/g, '');
-    
-    exports.push(`export { default as ${exportName} } from '${importPath}';`);
-    
-    // Track subdirectories
-    const dir = path.dirname(relativePath);
-    if (dir !== '.' && dir !== 'target') {
-      subdirs.add(dir);
-    }
-  });
-  
-  // Generate subdir exports
-  const subdirExports = Array.from(subdirs).map(subdir => 
-    `export * as ${subdir} from './${subdir}';`
-  );
-  
-  const indexContent = `// Auto-generated index file
-// DO NOT EDIT MANUALLY
-
-${exports.join('\n')}
-
-${subdirExports.join('\n')}
-`;
-  
-  const indexPath = path.join(outputDir, 'index.ts');
-  fs.writeFileSync(indexPath, indexContent);
-  console.log(`Generated: ${path.relative(process.cwd(), indexPath)}`);
-  
-  // Generate index files for subdirectories
-  subdirs.forEach(subdir => {
-    const subdirPath = path.join(outputDir, subdir);
-    const subdirFiles = mdFiles.filter(file => {
-      const rel = path.relative(promptsDir, file);
-      return path.dirname(rel) === subdir;
-    });
-    
-    const subdirExports = subdirFiles.map(file => {
-      const filename = path.basename(file, '.md');
-      const exportName = filename.replace(/[^a-zA-Z0-9]/g, '');
-      return `export { default as ${exportName} } from './${filename}';`;
-    });
-    
-    const subdirIndexContent = `// Auto-generated index file for ${subdir}
-// DO NOT EDIT MANUALLY
-
-${subdirExports.join('\n')}
-`;
-    
-    const subdirIndexPath = path.join(subdirPath, 'index.ts');
-    fs.writeFileSync(subdirIndexPath, subdirIndexContent);
-    console.log(`Generated: ${path.relative(process.cwd(), subdirIndexPath)}`);
-  });
-}
-
 // 主函数
 function main() {
   const promptsDir = path.join(__dirname, '..', 'src', 'prompts');
@@ -152,9 +90,6 @@ function main() {
   
   console.log(`Converting ${mdFiles.length} markdown files...`);
   mdFiles.forEach(mdFile => convertMarkdownToTypeScript(mdFile, outputDir));
-  
-  // 生成索引文件
-  generateIndexFile(outputDir, mdFiles, promptsDir);
   
   console.log('Build complete!');
 }

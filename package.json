@@ -396,11 +396,9 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.8",
-    "js-yaml": "^4.1.0",
-    "openai": "^5.20.1"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

@@ -25,27 +25,6 @@ npm run package
 # Press F5 in VSCode to launch Extension Development Host
 ```
 
-## Continuous Integration
-
-The project includes GitHub Actions for automated building and testing:
-
-### Build Workflow (`.github/workflows/build.yml`)
-- Triggers on pushes to `main` and `develop` branches, and on pull requests
-- Tests compilation across Node.js 18.x and 20.x
-- Steps: Install dependencies → Build prompts → Compile TypeScript → Build webpack → Run tests → Package VSIX
-- Uploads VSIX artifacts for each Node.js version
-
-### CI Workflow (`.github/workflows/ci.yml`)
-- Quick type checking for all branches except `main`
-- Fast feedback for development branches
-- Full build and artifact upload for pull requests
-
-### Build Process
-1. **Prompt Building**: `npm run build-prompts` converts Markdown prompt templates to TypeScript modules
-2. **TypeScript Compilation**: `npm run compile` transpiles TypeScript source code
-3. **Webpack Bundling**: `npm run package-web` creates optimized production bundle
-4. **VSIX Packaging**: `vsce package` creates the final extension package
-
 ## Architecture
 
 ### Project Structure

@@ -11,7 +11,7 @@ export function createLLMProvider(context: vscode.ExtensionContext, outputChanne
 
     if (provider === 'Gemini') {
         try {
-            return new GeminiCodeProvider(outputChannel);
+            return new GeminiCodeProvider(context, outputChannel);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to initialize Gemini provider: ${error}. Falling back to Claude.`);
             return new ClaudeCodeProvider(context, outputChannel);
@@ -20,7 +20,7 @@ export function createLLMProvider(context: vscode.ExtensionContext, outputChanne
 
     if (provider === 'Codex') {
         try {
-            return new CodexCodeProvider(outputChannel);
+            return new CodexCodeProvider(context, outputChannel);
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to initialize Codex provider: ${error}. Falling back to Claude.`);
             return new ClaudeCodeProvider(context, outputChannel);

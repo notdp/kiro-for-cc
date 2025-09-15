@@ -1,24 +1,36 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as child_process from 'child_process';
 import { LLMProvider } from './llmProvider';
 import { ConfigManager } from '../utils/configManager';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export class GeminiCodeProvider implements LLMProvider {
     private configManager: ConfigManager;
-    private genAI: GoogleGenerativeAI;
 
-    constructor(private outputChannel: vscode.OutputChannel) {
+    constructor(private context: vscode.ExtensionContext, private outputChannel: vscode.OutputChannel) {
         this.configManager = ConfigManager.getInstance();
-        const apiKey = this.configManager.get<string>('gemini.apiKey');
-        if (!apiKey) {
-            vscode.window.showErrorMessage('Gemini API key not configured. Please set it in the settings.');
-            throw new Error('Gemini API key not configured.');
-        }
-        this.genAI = new GoogleGenerativeAI(apiKey);
     }
 
     getSteeringFilename(): string {
         return 'AGENTS.md';
+    }
+
+    private async createTempFile(content: string, prefix: string = 'prompt'): Promise<string> {
+        const tempDir = this.context.globalStorageUri.fsPath;
+        await vscode.workspace.fs.createDirectory(this.context.globalStorageUri);
+        const tempFile = path.join(tempDir, `${prefix}-${Date.now()}.md`);
+        await fs.promises.writeFile(tempFile, content);
+        return this.convertPathIfWSL(tempFile);
+    }
+
+    private convertPathIfWSL(filePath: string): string {
+        if (process.platform === 'win32' && filePath.match(/^[A-Za-z]:\\/)) {
+            let wslPath = filePath.replace(/\\/g, '/');
+            wslPath = wslPath.replace(/^([A-Za-z]):/, (_match, drive) => `/mnt/${drive.toLowerCase()}`);
+            return wslPath;
+        }
+        return filePath;
     }
 
     async invokeSplitView(prompt: string, title: string): Promise<void> {
@@ -28,23 +40,33 @@ export class GeminiCodeProvider implements LLMProvider {
         this.outputChannel.appendLine(`========================================`);
 
         const modelName = this.configManager.get<string>('gemini.model') || 'gemini-pro';
-        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const promptFilePath = await this.createTempFile(prompt, 'gemini-prompt');
 
-        try {
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+        // Use 'cat' to pipe the prompt to the gemini cli
+        const command = `cat "${promptFilePath}" | gemini -m "${modelName}"`;
 
-            const doc = await vscode.workspace.openTextDocument({
-                content: text,
-                language: 'markdown'
-            });
-            await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
-        } catch (error) {
-            this.outputChannel.appendLine(`[GeminiCodeProvider] Error: ${error}`);
-            vscode.window.showErrorMessage(`Failed to invoke Gemini: ${error}`);
-            throw error;
-        }
+        const terminal = vscode.window.createTerminal({
+            name: title,
+            cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+            location: {
+                viewColumn: vscode.ViewColumn.Two
+            }
+        });
+        terminal.show();
+
+        // Add a small delay for safety
+        setTimeout(() => {
+            terminal.sendText(command, true);
+        }, 500);
+
+        // Clean up temp file
+        setTimeout(async () => {
+            try {
+                await fs.promises.unlink(promptFilePath);
+            } catch (e) {
+                // Ignore cleanup errors
+            }
+        }, 30000);
     }
 
     async invokeHeadless(prompt: string): Promise<{ exitCode: number | undefined; output?: string }> {
@@ -54,16 +76,25 @@ export class GeminiCodeProvider implements LLMProvider {
         this.outputChannel.appendLine(`========================================`);
 
         const modelName = this.configManager.get<string>('gemini.model') || 'gemini-pro';
-        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const promptFilePath = await this.createTempFile(prompt, 'gemini-headless-prompt');
+        const command = `cat "${promptFilePath}" | gemini -m "${modelName}"`;
 
-        try {
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-            return { exitCode: 0, output: text };
-        } catch (error) {
-            this.outputChannel.appendLine(`[GeminiCodeProvider] Error: ${error}`);
-            return { exitCode: 1, output: `${error}` };
-        }
+        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+        return new Promise((resolve) => {
+            child_process.exec(command, { cwd }, (error, stdout, stderr) => {
+                // Clean up temp file
+                fs.promises.unlink(promptFilePath).catch(() => {});
+
+                if (error) {
+                    this.outputChannel.appendLine(`[GeminiCodeProvider] Headless exec error: ${error.message}`);
+                    this.outputChannel.appendLine(`[GeminiCodeProvider] Stderr: ${stderr}`);
+                    resolve({ exitCode: error.code, output: stderr });
+                } else {
+                    this.outputChannel.appendLine(`[GeminiCodeProvider] Headless exec success.`);
+                    resolve({ exitCode: 0, output: stdout });
+                }
+            });
+        });
     }
 }
