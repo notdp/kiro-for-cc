@@ -17,7 +17,11 @@ export class SpecTaskCodeLensProvider implements vscode.CodeLensProvider {
     public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
         // Pattern is already filtered by registration, but double-check for tasks.md  
         const specDir = this.configManager.getPath('specs');
-        if (!document.fileName.includes(specDir) || !document.fileName.endsWith('tasks.md')) {
+        const normalizedSpecDir = specDir.replace(/\\/g, '/');
+        const normalizedFileName = document.fileName.replace(/\\/g, '/');
+
+        const specDirSegment = `/${normalizedSpecDir}/`;
+        if (!normalizedFileName.includes(specDirSegment) || !normalizedFileName.endsWith('tasks.md')) {
             return [];
         }
 

@@ -69,7 +69,35 @@ export class ConfigManager {
 
     getPath(type: keyof typeof DEFAULT_PATHS): string {
         const settings = this.getSettings();
-        return settings.paths[type] || DEFAULT_PATHS[type];
+        const rawPath = settings.paths[type] || DEFAULT_PATHS[type];
+        const normalized = this.normalizePath(rawPath);
+        return normalized || this.normalizePath(DEFAULT_PATHS[type]);
+    }
+
+    /**
+     * Normalizes a path for consistent matching:
+     * - Removes leading ./ or .\
+     * - Converts backslashes to forward slashes
+     * - Collapses duplicate separators and trims trailing slashes
+     */
+    private normalizePath(inputPath: string): string {
+        if (!inputPath) {
+            return inputPath;
+        }
+
+        // Start by trimming whitespace and removing repeated leading ./ or .\
+        let normalized = inputPath.trim().replace(/^(\.\/|\.\\)+/, '');
+
+        // Normalize path separators to forward slashes for glob compatibility
+        normalized = normalized.replace(/\\/g, '/');
+
+        // Collapse any duplicate separators that may result from user input
+        normalized = normalized.replace(/\/{2,}/g, '/');
+
+        // Remove trailing slashes for consistent matching
+        normalized = normalized.replace(/\/+$/, '');
+
+        return normalized;
     }
 
     getAbsolutePath(type: keyof typeof DEFAULT_PATHS): string {

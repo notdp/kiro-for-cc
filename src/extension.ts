@@ -104,32 +104,39 @@ export async function activate(context: vscode.ExtensionContext) {
     updateChecker.checkForUpdates();
     outputChannel.appendLine('Update check initiated');
 
-    // Register CodeLens provider for spec tasks
     const specTaskCodeLensProvider = new SpecTaskCodeLensProvider();
+    const configManager = ConfigManager.getInstance();
 
     let specDir = '.claude/specs';
     try {
-        const configManager = ConfigManager.getInstance();
-        await configManager.loadSettings()
-        specDir = configManager.getPath('specs');
-    } catch (error) {}
-    
+        await configManager.loadSettings();
+        const configuredSpecDir = configManager.getPath('specs');
+        specDir = configuredSpecDir || specDir;
+    } catch (error) {
+        outputChannel.appendLine(`Failed to load settings for spec CodeLens: ${error}`);
+    }
+
+    // // Register CodeLens provider for spec tasks once settings are ready
+    // const specTaskCodeLensProvider = new SpecTaskCodeLensProvider();
+
+    const normalizedSpecDir = specDir.replace(/\\/g, '/');
+
     // 使用更明确的文档选择器
     const selector: vscode.DocumentSelector = [
-        { 
-            language: 'markdown', 
-            pattern: `**/${specDir}/*/tasks.md`,
+        {
+            language: 'markdown',
+            pattern: `**/${normalizedSpecDir}/*/tasks.md`,
             scheme: 'file'
         }
     ];
-    
+
     const disposable = vscode.languages.registerCodeLensProvider(
         selector,
         specTaskCodeLensProvider
     );
-    
+
     context.subscriptions.push(disposable);
-    
+
     outputChannel.appendLine('CodeLens provider for spec tasks registered');
 }
 

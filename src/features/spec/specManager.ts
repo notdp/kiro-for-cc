@@ -20,7 +20,8 @@ export class SpecManager {
         this.promptLoader = PromptLoader.getInstance();
     }
 
-    public getSpecBasePath(): string {
+    public async getSpecBasePath(): Promise<string> {
+        await this.configManager.loadSettings();
         return this.configManager.getPath('specs');
     }
 
@@ -48,17 +49,20 @@ export class SpecManager {
 
         // Let Claude handle everything - directory creation, naming, and file creation
         // Load and render the spec creation prompt
+        const specBasePath = await this.getSpecBasePath();
         const prompt = this.promptLoader.renderPrompt('create-spec', {
             description,
             workspacePath: workspaceFolder.uri.fsPath,
-            specBasePath: this.getSpecBasePath()
+            specBasePath
         });
 
         // Send to Claude and get the terminal
         const terminal = await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Creating Spec');
 
         // Set up automatic terminal renaming when spec folder is created
-        this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        this.setupSpecFolderWatcher(workspaceFolder, terminal).catch(error => {
+            this.outputChannel.appendLine(`[SpecManager] Failed to set up watcher: ${error}`);
+        });
     }
 
     async createWithAgents() {
@@ -84,17 +88,20 @@ export class SpecManager {
         NotificationUtils.showAutoDismissNotification('Claude is creating your spec with specialized agents. Check the terminal for progress.');
 
         // Use the specialized subagent prompt
+        const specBasePath = await this.getSpecBasePath();
         const prompt = this.promptLoader.renderPrompt('create-spec-with-agents', {
             description,
             workspacePath: workspaceFolder.uri.fsPath,
-            specBasePath: this.getSpecBasePath()
+            specBasePath
         });
 
         // Send to Claude and get the terminal
         const terminal = await this.claudeProvider.invokeClaudeSplitView(prompt, 'KFC - Creating Spec (Agents)');
 
         // Set up automatic terminal renaming when spec folder is created
-        this.setupSpecFolderWatcher(workspaceFolder, terminal);
+        this.setupSpecFolderWatcher(workspaceFolder, terminal).catch(error => {
+            this.outputChannel.appendLine(`[SpecManager] Failed to set up watcher: ${error}`);
+        });
     }
 
     async implTask(taskFilePath: string, taskDescription: string) {
@@ -121,8 +128,9 @@ export class SpecManager {
      */
     private async setupSpecFolderWatcher(workspaceFolder: vscode.WorkspaceFolder, terminal: vscode.Terminal): Promise<void> {
         // Create watcher for new folders in the specs directory
+        const specBasePath = await this.getSpecBasePath();
         const watcher = vscode.workspace.createFileSystemWatcher(
-            new vscode.RelativePattern(workspaceFolder, `${this.getSpecBasePath()}/*`),
+            new vscode.RelativePattern(workspaceFolder, `${specBasePath}/*`),
             false, // Watch for creates
             true,  // Ignore changes
             true   // Ignore deletes
@@ -184,9 +192,10 @@ export class SpecManager {
             return;
         }
 
+        const specBasePath = await this.getSpecBasePath();
         const docPath = path.join(
             workspaceFolder.uri.fsPath,
-            this.getSpecBasePath(),
+            specBasePath,
             specName,
             `${type}.md`
         );
@@ -246,9 +255,10 @@ This document has not been created yet.`;
             return;
         }
 
+        const specBasePath = await this.getSpecBasePath();
         const specPath = path.join(
             workspaceFolder.uri.fsPath,
-            this.getSpecBasePath(),
+            specBasePath,
             specName
         );
 
@@ -267,7 +277,8 @@ This document has not been created yet.`;
             return [];
         }
 
-        const specsPath = path.join(workspaceFolder.uri.fsPath, this.getSpecBasePath());
+        const specBasePath = await this.getSpecBasePath();
+        const specsPath = path.join(workspaceFolder.uri.fsPath, specBasePath);
 
         // Check if directory exists first before creating
         try {
@@ -275,7 +286,7 @@ This document has not been created yet.`;
         } catch {
             // Directory doesn't exist, create it
             try {
-                this.outputChannel.appendLine('[SpecManager] Creating .claude/specs directory');
+                this.outputChannel.appendLine(`[SpecManager] Creating ${specBasePath} directory`);
                 await vscode.workspace.fs.createDirectory(vscode.Uri.file(path.dirname(specsPath)));
                 await vscode.workspace.fs.createDirectory(vscode.Uri.file(specsPath));
             } catch {
